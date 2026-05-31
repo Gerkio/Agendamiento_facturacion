@@ -48,5 +48,5 @@ INSERT INTO services (id, client_id, cleaner_id, start_time, end_time, status, i
 
 -- ============================================================
 -- Recuerda: crea tu usuario en Authentication → Users y hazlo admin:
---   UPDATE user_profiles SET role = 'admin' WHERE email = 'it@donkavi.com';
+--   UPDATE user_profiles SET role = 'admin' WHERE email = 'gerkio.18@gmail.com';
 -- ============================================================
