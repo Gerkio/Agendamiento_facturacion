@@ -41,6 +41,45 @@ function toISO(localValue: string): string {
 
 const input = 'w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500'
 
+// Franjas de hora cada 30 min (05:00–21:00) para el selector de inicio.
+const TIME_SLOTS: string[] = (() => {
+  const out: string[] = []
+  for (let h = 5; h <= 21; h++) for (const m of ['00', '30']) out.push(`${String(h).padStart(2, '0')}:${m}`)
+  return out
+})()
+
+// Duraciones comunes de un servicio de aseo (en minutos).
+const DURATIONS: { mins: number; label: string }[] = [
+  { mins: 30, label: '30 minutos' },
+  { mins: 60, label: '1 hora' },
+  { mins: 90, label: '1 hora 30 min' },
+  { mins: 120, label: '2 horas' },
+  { mins: 150, label: '2 horas 30 min' },
+  { mins: 180, label: '3 horas' },
+  { mins: 240, label: '4 horas' },
+  { mins: 300, label: '5 horas' },
+  { mins: 480, label: '8 horas (jornada)' },
+]
+
+const datePart = (local: string) => local.slice(0, 10)   // "YYYY-MM-DD"
+const timePart = (local: string) => local.slice(11, 16)  // "HH:mm"
+
+function addMinutesLocal(local: string, mins: number): string {
+  const d = new Date(local)
+  if (isNaN(d.getTime())) return local
+  d.setMinutes(d.getMinutes() + mins)
+  return toLocalInput(d)
+}
+function diffMinutes(startLocal: string, endLocal: string): number {
+  const a = new Date(startLocal).getTime(), b = new Date(endLocal).getTime()
+  if (isNaN(a) || isNaN(b)) return 0
+  return Math.round((b - a) / 60000)
+}
+function formatDur(mins: number): string {
+  const h = Math.floor(mins / 60), m = mins % 60
+  return `${h ? `${h} h ` : ''}${m ? `${m} min` : ''}`.trim() || '0 min'
+}
+
 export default function ServiceModal({ service, isNew, defaultStart, services, clients, cleaners, defaultCleanerId, onClose }: Props) {
   const supabase = createClient()
   const router = useRouter()
@@ -69,14 +108,26 @@ export default function ServiceModal({ service, isNew, defaultStart, services, c
 
   const set = (k: keyof typeof form, v: string) => setForm(f => ({ ...f, [k]: v }))
 
-  // Al cambiar el inicio, si el fin queda antes, lo empuja 2h después.
-  function onStartChange(v: string) {
+  // Duración actual (min) entre inicio y fin.
+  const durMins = diffMinutes(form.start_time, form.end_time)
+
+  // Cambiar la fecha: conserva hora de inicio y duración.
+  function onDateChange(date: string) {
     setForm(f => {
-      const start = new Date(v).getTime()
-      const end = new Date(f.end_time).getTime()
-      const next = !f.end_time || end <= start ? toLocalInput(new Date(start + 2 * 3600_000)) : f.end_time
-      return { ...f, start_time: v, end_time: next }
+      const start = `${date}T${timePart(f.start_time)}`
+      return { ...f, start_time: start, end_time: addMinutesLocal(start, diffMinutes(f.start_time, f.end_time) || 120) }
     })
+  }
+  // Cambiar la hora de inicio: conserva fecha y duración, recalcula el fin.
+  function onStartTimeChange(time: string) {
+    setForm(f => {
+      const start = `${datePart(f.start_time)}T${time}`
+      return { ...f, start_time: start, end_time: addMinutesLocal(start, diffMinutes(f.start_time, f.end_time) || 120) }
+    })
+  }
+  // Cambiar la duración: recalcula el fin desde el inicio.
+  function onDurationChange(mins: number) {
+    setForm(f => ({ ...f, end_time: addMinutesLocal(f.start_time, mins) }))
   }
 
   // Duración legible
@@ -212,19 +263,29 @@ export default function ServiceModal({ service, isNew, defaultStart, services, c
             </select>
           </div>
 
-          <div className="md:col-span-2 grid grid-cols-2 gap-3">
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Empieza</label>
-              <input title="Inicio" type="datetime-local" value={form.start_time} onChange={e => onStartChange(e.target.value)} className={input} />
-            </div>
-            <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Termina</label>
-              <input title="Fin" type="datetime-local" value={form.end_time} onChange={e => set('end_time', e.target.value)} className={input} />
-            </div>
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">📅 Fecha</label>
+            <input title="Fecha" type="date" value={datePart(form.start_time)} onChange={e => onDateChange(e.target.value)} className={input} />
           </div>
 
-          {duration && <p className="md:col-span-2 text-xs text-gray-500">⏱️ Duración: <strong>{duration}</strong></p>}
-          {endBeforeStart && <p className="md:col-span-2 text-xs text-red-600">La hora de fin debe ser posterior a la de inicio.</p>}
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">🕐 Hora de inicio</label>
+            <select title="Hora de inicio" value={timePart(form.start_time)} onChange={e => onStartTimeChange(e.target.value)} className={input}>
+              {!TIME_SLOTS.includes(timePart(form.start_time)) && <option value={timePart(form.start_time)}>{timePart(form.start_time)}</option>}
+              {TIME_SLOTS.map(t => <option key={t} value={t}>{t}</option>)}
+            </select>
+          </div>
+
+          <div className="md:col-span-2">
+            <label className="block text-sm font-medium text-gray-700 mb-1">⏱️ Duración</label>
+            <select title="Duración" value={String(durMins)} onChange={e => onDurationChange(Number(e.target.value))} className={input}>
+              {durMins > 0 && !DURATIONS.some(d => d.mins === durMins) && (
+                <option value={String(durMins)}>{formatDur(durMins)} (personalizada)</option>
+              )}
+              {DURATIONS.map(d => <option key={d.mins} value={String(d.mins)}>{d.label}</option>)}
+            </select>
+            <p className="text-xs text-gray-500 mt-1">Termina a las <strong>{timePart(form.end_time)}</strong>{duration ? ` · dura ${duration}` : ''}</p>
+          </div>
 
           {conflict && (
             <div className="md:col-span-2 bg-red-50 border border-red-200 text-red-700 rounded-lg px-3 py-2 text-sm flex items-start gap-2">
