@@ -1,0 +1,92 @@
+@import "tailwindcss";
+
+@theme {
+  --color-brand-50: #f0fdf4;
+  --color-brand-100: #dcfce7;
+  --color-brand-200: #bbf7d0;
+  --color-brand-500: #22c55e;
+  /* brand-600 y 700 oscurecidos para cumplir contraste WCAG AA (≈5:1 sobre
+     blanco): así los botones verdes con texto blanco y los enlaces verdes
+     sobre fondo claro son legibles para visión baja. */
+  --color-brand-600: #15803d;
+  --color-brand-700: #166534;
+  --color-brand-900: #14532d;
+}
+
+/* ── Base de legibilidad / accesibilidad ──────────────────────────────────
+   Tamaño base 17px (≈ +6%) para texto más grande y cómodo. Tipografía del
+   sistema (muy legible) y antialias. */
+:root {
+  font-size: 17px;
+}
+
+html {
+  font-family: system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue",
+    Arial, sans-serif;
+  -webkit-font-smoothing: antialiased;
+  text-rendering: optimizeLegibility;
+}
+
+body {
+  line-height: 1.55;
+}
+
+/* Foco de teclado SIEMPRE visible (navegación accesible). */
+*:focus-visible {
+  outline: 3px solid var(--color-brand-600);
+  outline-offset: 2px;
+  border-radius: 4px;
+}
+
+/* Respeta a quien prefiere menos animación. */
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    transition-duration: 0.01ms !important;
+  }
+}
+
+/* FullCalendar overrides */
+.fc .fc-toolbar-title {
+  font-size: 1.1rem;
+  font-weight: 600;
+}
+
+.fc .fc-button {
+  background-color: #16a34a !important;
+  border-color: #15803d !important;
+}
+
+.fc .fc-button:hover {
+  background-color: #15803d !important;
+}
+
+.fc .fc-button-active {
+  background-color: #14532d !important;
+}
+
+.fc-event-double-booked {
+  background-color: #ef4444 !important;
+  border-color: #b91c1c !important;
+}
+
+/* Impresión: al imprimir, solo se ve la representación gráfica de la factura. */
+@media print {
+  body * {
+    visibility: hidden;
+  }
+  #invoice-doc,
+  #invoice-doc * {
+    visibility: visible;
+  }
+  #invoice-doc {
+    position: absolute;
+    left: 0;
+    top: 0;
+    width: 100%;
+  }
+  @page {
+    size: A4;
+    margin: 12mm;
+  }
+}
