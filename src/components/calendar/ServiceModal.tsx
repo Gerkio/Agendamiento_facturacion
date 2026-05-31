@@ -182,15 +182,15 @@ export default function ServiceModal({ service, isNew, defaultStart, services, c
 
   return (
     <div onClick={onClose} className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
-      <div onClick={e => e.stopPropagation()} className="bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[92vh] overflow-y-auto">
+      <div onClick={e => e.stopPropagation()} className="bg-white rounded-2xl shadow-xl w-full max-w-md md:max-w-2xl max-h-[92vh] overflow-y-auto">
         <div className="flex items-center justify-between p-5 border-b sticky top-0 bg-white z-10">
           <h2 className="text-lg font-semibold">{isNew ? '🗓️ Agendar servicio' : 'Editar servicio'}</h2>
           <button type="button" onClick={onClose} aria-label="Cerrar" className="text-gray-600 hover:text-gray-600 text-xl">✕</button>
         </div>
 
-        <div className="p-5 space-y-4">
+        <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
           {(noClients || noCleaners) && (
-            <div className="bg-amber-50 border border-amber-200 text-amber-800 rounded-lg px-3 py-2 text-sm">
+            <div className="md:col-span-2 bg-amber-50 border border-amber-200 text-amber-800 rounded-lg px-3 py-2 text-sm">
               {noClients && <p>Primero crea al menos un <strong>cliente</strong> (menú Clientes).</p>}
               {noCleaners && <p>Primero crea al menos un <strong>limpiador</strong> (menú Limpiadores).</p>}
             </div>
@@ -212,7 +212,7 @@ export default function ServiceModal({ service, isNew, defaultStart, services, c
             </select>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
+          <div className="md:col-span-2 grid grid-cols-2 gap-3">
             <div>
               <label className="block text-sm font-medium text-gray-700 mb-1">Empieza</label>
               <input title="Inicio" type="datetime-local" value={form.start_time} onChange={e => onStartChange(e.target.value)} className={input} />
@@ -223,11 +223,11 @@ export default function ServiceModal({ service, isNew, defaultStart, services, c
             </div>
           </div>
 
-          {duration && <p className="text-xs text-gray-500">⏱️ Duración: <strong>{duration}</strong></p>}
-          {endBeforeStart && <p className="text-xs text-red-600">La hora de fin debe ser posterior a la de inicio.</p>}
+          {duration && <p className="md:col-span-2 text-xs text-gray-500">⏱️ Duración: <strong>{duration}</strong></p>}
+          {endBeforeStart && <p className="md:col-span-2 text-xs text-red-600">La hora de fin debe ser posterior a la de inicio.</p>}
 
           {conflict && (
-            <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg px-3 py-2 text-sm flex items-start gap-2">
+            <div className="md:col-span-2 bg-red-50 border border-red-200 text-red-700 rounded-lg px-3 py-2 text-sm flex items-start gap-2">
               <span>⚠️</span>
               <span>Este limpiador ya tiene un servicio que se cruza: <strong>{(conflict.clients as { company_name?: string } | undefined)?.company_name ?? 'otro cliente'}</strong> el {new Date(conflict.start_time).toLocaleString('es-CO', { dateStyle: 'short', timeStyle: 'short' })}. Puedes guardar igual, pero quedará marcado en rojo.</span>
             </div>
@@ -258,7 +258,7 @@ export default function ServiceModal({ service, isNew, defaultStart, services, c
             </div>
           )}
 
-          {error && <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg px-3 py-2 text-sm">{error}</div>}
+          {error && <div className="md:col-span-2 bg-red-50 border border-red-200 text-red-700 rounded-lg px-3 py-2 text-sm">{error}</div>}
         </div>
 
         <div className="flex items-center justify-between p-5 border-t gap-3 sticky bottom-0 bg-white">
