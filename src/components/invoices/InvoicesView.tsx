@@ -254,7 +254,7 @@ export default function InvoicesView({ clients, invoices: initial, creditNotes: 
         <div className="px-5 py-4 border-b border-gray-100">
           <h2 className="text-base font-semibold text-gray-700">Facturas ({invoices.length})</h2>
         </div>
-        <div className="overflow-x-auto"><table className="w-full text-sm min-w-[640px]">
+        <div className="overflow-x-auto hidden md:block"><table className="w-full text-sm min-w-[640px]">
           <thead className="bg-gray-50 text-gray-500 text-xs uppercase">
             <tr>
               <th className="text-left px-5 py-3">N° Factura</th>
@@ -320,6 +320,55 @@ export default function InvoicesView({ clients, invoices: initial, creditNotes: 
             ))}
           </tbody>
         </table></div>
+
+        {/* Vista de tarjetas (móvil) */}
+        <div className="md:hidden divide-y divide-gray-100">
+          {invoices.length === 0 && (
+            <p className="text-center py-10 text-gray-600">Sin facturas generadas</p>
+          )}
+          {invoices.map(inv => (
+            <div key={inv.id} className="p-4">
+              <div className="flex items-center justify-between gap-2">
+                <span className="font-mono text-sm font-semibold text-gray-800">{inv.invoice_number ?? 'BORRADOR'}</span>
+                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[inv.billing_status] ?? 'bg-gray-100 text-gray-600'}`}>
+                  {STATUS_LABELS[inv.billing_status] ?? inv.billing_status}
+                </span>
+              </div>
+              <div className="mt-1 text-sm text-gray-600 flex items-center justify-between gap-2">
+                <span className="truncate">{(inv.clients as { company_name: string } | undefined)?.company_name ?? '—'}</span>
+                <span className="font-medium text-gray-800 whitespace-nowrap">{formatCOP(Number(inv.total_amount))}</span>
+              </div>
+              <div className="text-xs text-gray-500 mt-0.5">{new Date(inv.issue_date).toLocaleDateString('es-CO')}</div>
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button type="button" onClick={() => openDocument(inv)} className="flex-1 min-w-[100px] py-2 rounded-lg border border-brand-300 text-brand-700 font-medium hover:bg-brand-50">Ver factura</button>
+                {inv.billing_status === 'draft' && (
+                  <>
+                    <button type="button" onClick={() => sendToDian(inv)} disabled={sendingDian === inv.id}
+                      className="flex-1 min-w-[100px] py-2 rounded-lg bg-brand-600 text-white font-medium hover:bg-brand-700 disabled:opacity-50">
+                      {sendingDian === inv.id ? 'Enviando…' : 'Enviar DIAN'}
+                    </button>
+                    <button type="button" onClick={() => deleteInvoice(inv)} disabled={deleting === inv.id}
+                      className="flex-1 min-w-[100px] py-2 rounded-lg border border-red-300 text-red-600 font-medium hover:bg-red-50 disabled:opacity-50">
+                      {deleting === inv.id ? 'Eliminando…' : 'Eliminar'}
+                    </button>
+                  </>
+                )}
+                {inv.billing_status === 'sent_dian' && (
+                  noteByInvoice.has(inv.id) ? (
+                    <span className="flex-1 min-w-[100px] py-2 text-center rounded-lg bg-purple-100 text-purple-700 font-medium">
+                      NC {noteByInvoice.get(inv.id)?.note_number ?? '…'}
+                    </span>
+                  ) : (
+                    <button type="button" onClick={() => setCnInvoice(inv)}
+                      className="flex-1 min-w-[100px] py-2 rounded-lg border border-purple-300 text-purple-700 font-medium hover:bg-purple-50">
+                      Nota crédito
+                    </button>
+                  )
+                )}
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
       {/* Representación gráfica de la factura */}

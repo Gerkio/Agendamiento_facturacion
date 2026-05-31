@@ -149,7 +149,7 @@ export default function ClientsTable({ clients: initial }: { clients: Client[] }
             + Nuevo Cliente
           </button>
         </div>
-        <div className="overflow-x-auto"><table className="w-full text-sm min-w-[640px]">
+        <div className="overflow-x-auto hidden md:block"><table className="w-full text-sm min-w-[640px]">
           <thead className="bg-gray-50 text-gray-500 text-xs uppercase">
             <tr>
               <th className="text-left px-5 py-3">Empresa</th>
@@ -197,6 +197,39 @@ export default function ClientsTable({ clients: initial }: { clients: Client[] }
             ))}
           </tbody>
         </table></div>
+
+        {/* Vista de tarjetas (móvil) */}
+        <div className="md:hidden divide-y divide-gray-100">
+          {clients.length === 0 && (
+            <div className="flex flex-col items-center text-center gap-3 py-12 px-4">
+              <span className="text-4xl">🏢</span>
+              <p className="text-gray-600">Aún no tienes clientes registrados.</p>
+              <button type="button" onClick={openNew} className="bg-brand-600 text-white px-4 py-2.5 rounded-lg hover:bg-brand-700 transition">
+                + Crear mi primer cliente
+              </button>
+            </div>
+          )}
+          {clients.length > 0 && filtered.length === 0 && (
+            <p className="py-10 text-center text-gray-600">Ningún cliente coincide con “{search}”.</p>
+          )}
+          {filtered.map(c => (
+            <div key={c.id} className="p-4">
+              <div className="font-semibold text-gray-800 flex items-center gap-1.5">
+                {c.company_name}
+                {c.indicaciones && <span title="Tiene indicaciones de llegada">🧭</span>}
+              </div>
+              <div className="mt-1 text-sm text-gray-600 space-y-0.5">
+                <div>NIT/CC: {c.nit_cedula}-{c.dv}</div>
+                <div className="break-all">{c.email}</div>
+                <div>{CITY_OPTIONS.find(x => x.code === c.city_code)?.name ?? c.city_code} · {c.fiscal_regimen}</div>
+              </div>
+              <div className="mt-3 flex gap-2">
+                <button type="button" onClick={() => openEdit(c)} className="flex-1 py-2 rounded-lg border border-brand-300 text-brand-700 font-medium hover:bg-brand-50">Editar</button>
+                <button type="button" onClick={() => handleDelete(c.id)} className="flex-1 py-2 rounded-lg border border-red-300 text-red-600 font-medium hover:bg-red-50">Eliminar</button>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
       {showModal && (

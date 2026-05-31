@@ -148,7 +148,7 @@ export default function CleanersTable({ cleaners: initial }: { cleaners: Cleaner
             + Nuevo Limpiador
           </button>
         </div>
-        <div className="overflow-x-auto"><table className="w-full text-sm min-w-[640px]">
+        <div className="overflow-x-auto hidden md:block"><table className="w-full text-sm min-w-[640px]">
           <thead className="bg-gray-50 text-gray-500 text-xs uppercase">
             <tr>
               <th className="text-left px-5 py-3">Nombre</th>
@@ -201,6 +201,42 @@ export default function CleanersTable({ cleaners: initial }: { cleaners: Cleaner
             ))}
           </tbody>
         </table></div>
+
+        {/* Vista de tarjetas (móvil) */}
+        <div className="md:hidden divide-y divide-gray-100">
+          {cleaners.length === 0 && (
+            <div className="flex flex-col items-center text-center gap-3 py-12 px-4">
+              <span className="text-4xl">🧹</span>
+              <p className="text-gray-600">Aún no tienes limpiadores. Al crear uno, se genera su usuario automáticamente.</p>
+              <button type="button" onClick={openNew} className="bg-brand-600 text-white px-4 py-2.5 rounded-lg hover:bg-brand-700 transition">
+                + Crear mi primer limpiador
+              </button>
+            </div>
+          )}
+          {cleaners.length > 0 && filtered.length === 0 && (
+            <p className="py-10 text-center text-gray-600">Ningún limpiador coincide con “{search}”.</p>
+          )}
+          {filtered.map(c => (
+            <div key={c.id} className="p-4">
+              <div className="flex items-center justify-between gap-2">
+                <span className="font-semibold text-gray-800">{c.full_name}</span>
+                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${c.is_active ? 'bg-green-100 text-green-700' : 'bg-gray-100 text-gray-500'}`}>
+                  {c.is_active ? 'Activo' : 'Inactivo'}
+                </span>
+              </div>
+              <div className="mt-1 text-sm text-gray-600 space-y-0.5">
+                <div>Cédula: <span className="font-mono">{c.document_id}</span></div>
+                <div>Tel: {c.phone ?? '—'}</div>
+              </div>
+              <div className="mt-3 grid grid-cols-2 gap-2">
+                <button type="button" onClick={() => openEdit(c)} className="py-2 rounded-lg border border-brand-300 text-brand-700 font-medium hover:bg-brand-50">Editar</button>
+                <button type="button" onClick={() => handleToggle(c)} className="py-2 rounded-lg border border-gray-300 text-gray-700 font-medium hover:bg-gray-50">{c.is_active ? 'Desactivar' : 'Activar'}</button>
+                <button type="button" onClick={() => handleResetPassword(c)} disabled={resetting === c.id} className="py-2 rounded-lg border border-amber-300 text-amber-700 font-medium hover:bg-amber-50 disabled:opacity-50">{resetting === c.id ? 'Reseteando…' : 'Resetear clave'}</button>
+                <button type="button" onClick={() => handleDelete(c)} disabled={deleting === c.id} className="py-2 rounded-lg border border-red-300 text-red-600 font-medium hover:bg-red-50 disabled:opacity-50">{deleting === c.id ? 'Eliminando…' : 'Eliminar'}</button>
+              </div>
+            </div>
+          ))}
+        </div>
       </div>
 
       {showModal && (
