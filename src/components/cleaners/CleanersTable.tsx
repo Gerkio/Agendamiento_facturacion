@@ -148,7 +148,7 @@ export default function CleanersTable({ cleaners: initial }: { cleaners: Cleaner
             + Nuevo Limpiador
           </button>
         </div>
-        <table className="w-full text-sm">
+        <div className="overflow-x-auto"><table className="w-full text-sm min-w-[640px]">
           <thead className="bg-gray-50 text-gray-500 text-xs uppercase">
             <tr>
               <th className="text-left px-5 py-3">Nombre</th>
@@ -200,7 +200,7 @@ export default function CleanersTable({ cleaners: initial }: { cleaners: Cleaner
               </tr>
             ))}
           </tbody>
-        </table>
+        </table></div>
       </div>
 
       {showModal && (

@@ -78,7 +78,7 @@ export default function InvoiceDocument({ invoice, client, services, emisor, loa
         </div>
 
         {/* HOJA DE LA FACTURA */}
-        <div id="invoice-doc" className="bg-white rounded-xl shadow-xl p-8 text-gray-800 print:rounded-none print:shadow-none print:p-6">
+        <div id="invoice-doc" className="bg-white rounded-xl shadow-xl p-5 sm:p-8 text-gray-800 print:rounded-none print:shadow-none print:p-6">
           {/* Avisos */}
           {!emisor.configured && (
             <div className="mb-4 bg-amber-50 border border-amber-300 text-amber-800 text-xs rounded-lg px-3 py-2 print:hidden">
@@ -92,7 +92,7 @@ export default function InvoiceDocument({ invoice, client, services, emisor, loa
           )}
 
           {/* Encabezado: emisor + título */}
-          <div className="flex justify-between items-start gap-6 border-b-2 border-gray-800 pb-4">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4 sm:gap-6 border-b-2 border-gray-800 pb-4 print:flex-row print:justify-between">
             <div className="flex-1">
               <div className="flex items-center gap-3 mb-2">
                 <div className="w-14 h-14 rounded-lg bg-brand-600 text-white flex items-center justify-center text-2xl font-bold shrink-0">
@@ -137,7 +137,7 @@ export default function InvoiceDocument({ invoice, client, services, emisor, loa
           </div>
 
           {/* Adquiriente + fechas */}
-          <div className="grid grid-cols-2 gap-6 mt-5">
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4 sm:gap-6 mt-5 print:grid-cols-2">
             <div>
               <p className="text-xs uppercase text-gray-600 font-semibold mb-1">Adquiriente / Cliente</p>
               <p className="font-semibold text-sm">{client?.company_name ?? (invoice.clients as { company_name?: string } | undefined)?.company_name ?? '—'}</p>
@@ -160,7 +160,8 @@ export default function InvoiceDocument({ invoice, client, services, emisor, loa
           </div>
 
           {/* Ítems */}
-          <table className="w-full text-xs mt-5 border-collapse">
+          <div className="overflow-x-auto mt-5">
+          <table className="w-full text-xs border-collapse min-w-[480px] print:min-w-0">
             <thead>
               <tr className="bg-gray-800 text-white">
                 <th className="text-left px-3 py-2 font-semibold">#</th>
@@ -198,9 +199,10 @@ export default function InvoiceDocument({ invoice, client, services, emisor, loa
               })}
             </tbody>
           </table>
+          </div>
 
           {/* Totales + valor en letras */}
-          <div className="flex justify-between items-start gap-6 mt-4">
+          <div className="flex flex-col sm:flex-row sm:justify-between sm:items-start gap-4 sm:gap-6 mt-4 print:flex-row print:justify-between">
             <div className="flex-1 text-xs">
               <p className="text-xs uppercase text-gray-600 font-semibold">Valor en letras</p>
               <p className="font-medium text-gray-700 mt-0.5">{numeroALetras(total)}</p>
@@ -216,7 +218,7 @@ export default function InvoiceDocument({ invoice, client, services, emisor, loa
           </div>
 
           {/* CUFE + QR */}
-          <div className="mt-6 border-t border-gray-200 pt-4 flex gap-5 items-start">
+          <div className="mt-6 border-t border-gray-200 pt-4 flex flex-col sm:flex-row gap-5 items-start print:flex-row">
             <div className="shrink-0">
               {qrUrl ? (
                 // eslint-disable-next-line @next/next/no-img-element

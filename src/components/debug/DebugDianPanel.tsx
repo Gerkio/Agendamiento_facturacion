@@ -99,21 +99,21 @@ export default function DebugDianPanel() {
       {/* Test client NIT */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-5">
         <h2 className="text-base font-semibold text-gray-700 mb-3">Configuración del Test</h2>
-        <div className="flex gap-3 items-end">
-          <div>
+        <div className="flex flex-wrap gap-3 items-end">
+          <div className="flex-1 min-w-[160px]">
             <label className="block text-sm font-medium text-gray-700 mb-1">NIT del cliente de prueba</label>
             <input
               type="text"
               value={testClientNit}
               onChange={e => setTestClientNit(e.target.value)}
-              className="border border-gray-300 rounded-lg px-3 py-2 text-sm w-48 focus:outline-none focus:ring-2 focus:ring-brand-500"
+              className="border border-gray-300 rounded-lg px-3 py-2 text-sm w-full sm:w-48 focus:outline-none focus:ring-2 focus:ring-brand-500"
               placeholder="800000000"
             />
           </div>
-          <button onClick={testCufe} className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200 transition">
+          <button type="button" onClick={testCufe} className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200 transition">
             🔢 Probar CUFE
           </button>
-          <button onClick={previewXml} className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200 transition">
+          <button type="button" onClick={previewXml} className="px-4 py-2 bg-gray-100 text-gray-700 rounded-lg text-sm hover:bg-gray-200 transition">
             📄 Preview XML
           </button>
         </div>
