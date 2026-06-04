@@ -111,6 +111,14 @@ export interface Service {
   obs_internas?: string | null
   /** Ítem del catálogo de servicios usado al agendar (opcional). */
   catalog_id?: string | null
+  /** Clasificación operativa: Normal/Garantía/Obsequio/Reinducción/Dominical. */
+  service_class?: string | null
+  /** Turno: manana | tarde | dia_completo. */
+  turno?: string | null
+  /** Recargo dominical o festivo. */
+  recargo_dominical?: boolean | null
+  /** Forma de pago de este servicio (default tomado del cliente). */
+  forma_pago?: string | null
   created_at: string
   clients?: Client
   cleaners?: Cleaner
