@@ -5,7 +5,9 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useUI } from '@/components/ui/UIProvider'
 import CleanerHojaDeVida from '@/components/cleaners/CleanerHojaDeVida'
-import type { Service, Client, Cleaner } from '@/types/database'
+import { formatCOP } from '@/lib/format'
+import { SEGMENTS, hhmm, scheduleLabel } from '@/lib/service-catalog'
+import type { Service, Client, Cleaner, ServiceCatalog } from '@/types/database'
 
 interface Props {
   service: Service | null
@@ -17,6 +19,8 @@ interface Props {
   /** Listas precargadas desde el servidor (evita pedirlas en cada apertura). */
   clients: Client[]
   cleaners: Cleaner[]
+  /** Catálogo de servicios para prellenar jornada/duración/precio sin reescribir. */
+  catalog?: ServiceCatalog[]
   /** Auxiliar preseleccionado al crear desde una celda de la matriz. */
   defaultCleanerId?: string | null
   onClose: () => void
@@ -75,7 +79,7 @@ function formatDur(mins: number): string {
   return `${h ? `${h} h ` : ''}${m ? `${m} min` : ''}`.trim() || '0 min'
 }
 
-export default function ServiceModal({ service, isNew, defaultStart, services, clients, cleaners, defaultCleanerId, onClose }: Props) {
+export default function ServiceModal({ service, isNew, defaultStart, services, clients, cleaners, catalog = [], defaultCleanerId, onClose }: Props) {
   const supabase = createClient()
   const router = useRouter()
   const { toast, confirm } = useUI()
@@ -95,6 +99,7 @@ export default function ServiceModal({ service, isNew, defaultStart, services, c
     service_type: service?.service_type ?? 'Normal',
     obs_auxiliar: service?.obs_auxiliar ?? '',
     obs_internas: service?.obs_internas ?? '',
+    catalog_id: service?.catalog_id ?? '',
   })
 
   const [showHoja, setShowHoja] = useState(false)
@@ -135,6 +140,30 @@ export default function ServiceModal({ service, isNew, defaultStart, services, c
   // Cambiar la duración: recalcula el fin desde el inicio.
   function onDurationChange(mins: number) {
     setForm(f => ({ ...f, end_time: addMinutesLocal(f.start_time, mins) }))
+  }
+
+  // Catálogo de servicios (activos), agrupado por grupo para el selector.
+  const catalogGroups = useMemo(() => {
+    const active = catalog.filter(c => c.is_active)
+    return SEGMENTS.map(seg => ({ seg, items: active.filter(c => c.segment === seg.value) })).filter(g => g.items.length)
+  }, [catalog])
+
+  // Elegir un servicio del catálogo: prellena hora de inicio (sobre la fecha
+  // actual), duración (→ fin), precio y tipo. El admin puede ajustar luego.
+  function applyCatalog(id: string) {
+    const c = catalog.find(x => x.id === id)
+    setForm(f => {
+      if (!c) return { ...f, catalog_id: '' }
+      const start = `${datePart(f.start_time)}T${hhmm(c.start_time)}`
+      return {
+        ...f,
+        catalog_id: id,
+        start_time: start,
+        end_time: addMinutesLocal(start, c.duration_minutes),
+        price_cop: String(c.price_cop),
+        service_type: c.name,
+      }
+    })
   }
 
   // Duración legible
@@ -202,6 +231,7 @@ export default function ServiceModal({ service, isNew, defaultStart, services, c
             service_type: form.service_type || null,
             obs_auxiliar: form.obs_auxiliar || null,
             obs_internas: form.obs_internas || null,
+            catalog_id: form.catalog_id || null,
           }
         })
         const { error } = await supabase.from('services').insert(rows)
@@ -217,6 +247,7 @@ export default function ServiceModal({ service, isNew, defaultStart, services, c
           service_type: form.service_type || null,
           obs_auxiliar: form.obs_auxiliar || null,
           obs_internas: form.obs_internas || null,
+          catalog_id: form.catalog_id || null,
         }).eq('id', service.id)
         if (error) throw error
       }
@@ -280,6 +311,23 @@ export default function ServiceModal({ service, isNew, defaultStart, services, c
             <div className="md:col-span-2 bg-amber-50 border border-amber-200 text-amber-800 rounded-lg px-3 py-2 text-sm">
               {noClients && <p>Primero crea al menos un <strong>cliente</strong> (menú Clientes).</p>}
               {noCleaners && <p>Primero crea al menos un <strong>limpiador</strong> (menú Limpiadores).</p>}
+            </div>
+          )}
+
+          {catalogGroups.length > 0 && (
+            <div className="md:col-span-2 bg-brand-50 border border-brand-200 rounded-lg p-3">
+              <label className="block text-sm font-medium text-brand-800 mb-1">🧰 Servicio del catálogo</label>
+              <select title="Servicio del catálogo" value={form.catalog_id} onChange={e => applyCatalog(e.target.value)} className={input}>
+                <option value="">— Personalizado (sin catálogo) —</option>
+                {catalogGroups.map(g => (
+                  <optgroup key={g.seg.value} label={g.seg.label}>
+                    {g.items.map(c => (
+                      <option key={c.id} value={c.id}>{c.name} — {formatCOP(Number(c.price_cop))} · {scheduleLabel(c.start_time, c.duration_minutes)}</option>
+                    ))}
+                  </optgroup>
+                ))}
+              </select>
+              <p className="text-xs text-gray-600 mt-1">Elige uno para prellenar jornada, duración, precio y tipo. Puedes ajustarlos después.</p>
             </div>
           )}
 

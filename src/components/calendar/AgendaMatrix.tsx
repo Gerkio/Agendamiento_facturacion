@@ -2,7 +2,7 @@
 
 import { useCallback, useEffect, useMemo, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import type { Service, Client, Cleaner } from '@/types/database'
+import type { Service, Client, Cleaner, ServiceCatalog } from '@/types/database'
 import ServiceModal from './ServiceModal'
 import ServiceDetail from './ServiceDetail'
 import { useUI } from '@/components/ui/UIProvider'
@@ -11,6 +11,7 @@ import { formatCOP } from '@/lib/format'
 interface Props {
   cleaners: Cleaner[]
   clients: Client[]
+  catalog?: ServiceCatalog[]
   isAdmin: boolean
   cleanerId: string | null
 }
@@ -54,7 +55,7 @@ function periodsOf(s: Service): ('M' | 'T')[] {
 }
 const clientNameOf = (s: Service) => (s.clients as { company_name?: string } | undefined)?.company_name ?? 'Cliente'
 
-export default function AgendaMatrix({ cleaners, clients, isAdmin, cleanerId }: Props) {
+export default function AgendaMatrix({ cleaners, clients, catalog = [], isAdmin, cleanerId }: Props) {
   const supabase = createClient()
   const { toast, confirm } = useUI()
   const [weekStart, setWeekStart] = useState(() => mondayOf(new Date()))
@@ -382,6 +383,7 @@ export default function AgendaMatrix({ cleaners, clients, isAdmin, cleanerId }: 
           services={services}
           clients={clients}
           cleaners={cleaners}
+          catalog={catalog}
           onClose={() => { setModalOpen(false); fetchWeek() }}
         />
       )}

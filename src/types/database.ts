@@ -109,9 +109,30 @@ export interface Service {
   service_type?: string | null
   obs_auxiliar?: string | null
   obs_internas?: string | null
+  /** Ítem del catálogo de servicios usado al agendar (opcional). */
+  catalog_id?: string | null
   created_at: string
   clients?: Client
   cleaners?: Cleaner
+}
+
+export type ServiceSegment = 'hogar' | 'empresa'
+export type ServiceTipo = 'dia_completo' | 'medio_dia_manana' | 'medio_dia_tarde'
+
+/** Catálogo de servicios: tipos predefinidos con sus parámetros (jornada,
+ *  hora de inicio, duración, precio…) para no reingresarlos en cada agenda. */
+export interface ServiceCatalog {
+  id: string
+  name: string
+  segment: ServiceSegment
+  tipo: ServiceTipo
+  /** Hora de inicio por defecto, formato "HH:mm[:ss]". */
+  start_time: string
+  duration_minutes: number
+  price_cop: number
+  bono_cop: number
+  is_active: boolean
+  created_at: string
 }
 
 export type NovedadType = 'permiso' | 'vacaciones' | 'incapacidad' | 'otro'

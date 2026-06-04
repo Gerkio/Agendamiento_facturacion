@@ -15,6 +15,7 @@ const adminLinks = [
   { href: '/dashboard', label: 'Agenda', icon: '📅' },
   { href: '/dashboard/cleaners', label: 'Auxiliares', icon: '🧹' },
   { href: '/dashboard/clients', label: 'Clientes', icon: '🏢' },
+  { href: '/dashboard/services', label: 'Servicios', icon: '🧰' },
   { href: '/dashboard/novedades', label: 'Novedades', icon: '📋' },
   { href: '/dashboard/invoices', label: 'Facturación', icon: '🧾' },
   { href: '/dashboard/debug', label: 'Debug DIAN', icon: '🔧' },

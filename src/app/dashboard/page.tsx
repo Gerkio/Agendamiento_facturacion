@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import AgendaMatrix from '@/components/calendar/AgendaMatrix'
+import type { ServiceCatalog } from '@/types/database'
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -22,15 +23,19 @@ export default async function DashboardPage() {
     ? supabase.from('cleaners').select('*').eq('is_active', true).order('full_name')
     : supabase.from('cleaners').select('*').eq('id', cleanerId ?? '')
 
-  const [{ data: cleaners }, { data: clients }] = await Promise.all([
+  const [{ data: cleaners }, { data: clients }, { data: catalog }] = await Promise.all([
     cleanersQuery,
     isAdmin ? supabase.from('clients').select('*').order('company_name') : Promise.resolve({ data: [] }),
+    isAdmin
+      ? supabase.from('service_catalog').select('*').eq('is_active', true).order('segment').order('name').returns<ServiceCatalog[]>()
+      : Promise.resolve({ data: [] as ServiceCatalog[] }),
   ])
 
   return (
     <AgendaMatrix
       cleaners={cleaners ?? []}
       clients={clients ?? []}
+      catalog={catalog ?? []}
       isAdmin={isAdmin}
       cleanerId={cleanerId}
     />
