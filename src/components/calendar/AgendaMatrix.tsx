@@ -21,24 +21,11 @@ const AFTERNOON_HOUR = 14
 // Servicios que inician antes de las 13:00 = Mañana (M); 13:00 o después = Tarde (T).
 const SPLIT_HOUR = 13
 
-// Paleta suave; cada cliente recibe un color consistente (por hash del nombre).
-const PALETTE = [
-  { bg: '#eff6ff', bd: '#3b82f6', tx: '#1e40af' },
-  { bg: '#f0fdf4', bd: '#22c55e', tx: '#15803d' },
-  { bg: '#fef3c7', bd: '#f59e0b', tx: '#92400e' },
-  { bg: '#fae8ff', bd: '#d946ef', tx: '#86198f' },
-  { bg: '#ecfeff', bd: '#06b6d4', tx: '#155e75' },
-  { bg: '#fce7f3', bd: '#ec4899', tx: '#9d174d' },
-  { bg: '#eef2ff', bd: '#6366f1', tx: '#3730a3' },
-  { bg: '#fff7ed', bd: '#f97316', tx: '#9a3412' },
-  { bg: '#f7fee7', bd: '#84cc16', tx: '#3f6212' },
-  { bg: '#f1f5f9', bd: '#64748b', tx: '#334155' },
-]
-function clientColor(name: string) {
-  let h = 0
-  for (let i = 0; i < name.length; i++) h = (h * 31 + name.charCodeAt(i)) >>> 0
-  return PALETTE[h % PALETTE.length]
-}
+// Colores por ESTADO del servicio (no por cliente):
+//   verde = agendado · gris = completado · rojo = doble reserva (alerta).
+const COLOR_SCHEDULED = { background: '#f0fdf4', borderLeft: '3px solid #22c55e', color: '#15803d' }
+const COLOR_DONE = { background: '#f3f4f6', borderLeft: '3px solid #9ca3af', color: '#4b5563' }
+const COLOR_CONFLICT = { background: '#fee2e2', borderLeft: '3px solid #ef4444', color: '#991b1b' }
 
 function mondayOf(d: Date): Date {
   const x = new Date(d); x.setHours(0, 0, 0, 0)
@@ -199,10 +186,7 @@ export default function AgendaMatrix({ cleaners, clients, isAdmin, cleanerId }: 
   function renderServiceCard(s: Service) {
     const red = doubled.has(s.id)
     const done = s.status === 'completed'
-    const col = clientColor(clientNameOf(s))
-    const style = red
-      ? { background: '#fee2e2', borderLeft: '3px solid #ef4444', color: '#991b1b' }
-      : { background: col.bg, borderLeft: `3px solid ${col.bd}`, color: col.tx }
+    const style = red ? COLOR_CONFLICT : done ? COLOR_DONE : COLOR_SCHEDULED
     return (
       <button key={s.id} type="button"
         draggable={isAdmin}
