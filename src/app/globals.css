@@ -1,16 +1,28 @@
 @import "tailwindcss";
 
 @theme {
-  --color-brand-50: #f0fdf4;
-  --color-brand-100: #dcfce7;
-  --color-brand-200: #bbf7d0;
-  --color-brand-500: #22c55e;
-  /* brand-600 y 700 oscurecidos para cumplir contraste WCAG AA (≈5:1 sobre
-     blanco): así los botones verdes con texto blanco y los enlaces verdes
-     sobre fondo claro son legibles para visión baja. */
-  --color-brand-600: #15803d;
-  --color-brand-700: #166534;
-  --color-brand-900: #14532d;
+  /* ── Paleta de marca AMARU (verdes naturales) ───────────────────────────
+     Escala calibrada para contraste WCAG AA:
+       · brand-600 #587a51 → texto blanco ≈4.9:1 (botones, nav activo, foco)
+       · brand-700 #154735 → texto blanco ≈10.6:1 (hover, títulos, enlaces)
+     Anclada en los 3 verdes de marca: #bcd0b6 (claro), #7c9c74 (medio),
+     #154735 (profundo). Los tonos 50/100 se usan como fondos suaves de badges. */
+  --color-brand-50:  #f4f7f2;
+  --color-brand-100: #e6efe3;
+  --color-brand-200: #cfe0c9;
+  --color-brand-300: #bcd0b6;
+  --color-brand-400: #9bba92;
+  --color-brand-500: #7c9c74;
+  --color-brand-600: #587a51;
+  --color-brand-700: #154735;
+  --color-brand-800: #103a2b;
+  --color-brand-900: #0c2c20;
+
+  /* Lienzo cálido de marca (fondo de la app) y acentos neutros de apoyo. */
+  --color-canvas: #f8f8f6;
+  --color-olive:  #848452;
+  --color-sage:   #737975;
+  --color-stone:  #8f9593;
 }
 
 /* ── Base de legibilidad / accesibilidad ──────────────────────────────────
@@ -29,6 +41,8 @@ html {
 
 body {
   line-height: 1.55;
+  background: var(--color-canvas);
+  color: #1f2723; /* tinta cálida de marca (verde casi negro) para mejor armonía */
 }
 
 /* Foco de teclado SIEMPRE visible (navegación accesible). */
@@ -44,30 +58,6 @@ body {
     animation-duration: 0.01ms !important;
     transition-duration: 0.01ms !important;
   }
-}
-
-/* FullCalendar overrides */
-.fc .fc-toolbar-title {
-  font-size: 1.1rem;
-  font-weight: 600;
-}
-
-.fc .fc-button {
-  background-color: #16a34a !important;
-  border-color: #15803d !important;
-}
-
-.fc .fc-button:hover {
-  background-color: #15803d !important;
-}
-
-.fc .fc-button-active {
-  background-color: #14532d !important;
-}
-
-.fc-event-double-booked {
-  background-color: #ef4444 !important;
-  border-color: #b91c1c !important;
 }
 
 /* Impresión: al imprimir, solo se ve la representación gráfica de la factura. */

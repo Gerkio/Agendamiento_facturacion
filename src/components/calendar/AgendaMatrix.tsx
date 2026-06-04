@@ -21,10 +21,10 @@ const AFTERNOON_HOUR = 14
 // Servicios que inician antes de las 13:00 = Mañana (M); 13:00 o después = Tarde (T).
 const SPLIT_HOUR = 13
 
-// Colores por ESTADO del servicio (no por cliente):
+// Colores por ESTADO del servicio (no por cliente), en tonos de la marca:
 //   verde = agendado · gris = completado · rojo = doble reserva (alerta).
-const COLOR_SCHEDULED = { background: '#f0fdf4', borderLeft: '3px solid #22c55e', color: '#15803d' }
-const COLOR_DONE = { background: '#f3f4f6', borderLeft: '3px solid #9ca3af', color: '#4b5563' }
+const COLOR_SCHEDULED = { background: '#e6efe3', borderLeft: '3px solid #7c9c74', color: '#154735' }
+const COLOR_DONE = { background: '#f1f2f0', borderLeft: '3px solid #8f9593', color: '#4b5563' }
 const COLOR_CONFLICT = { background: '#fee2e2', borderLeft: '3px solid #ef4444', color: '#991b1b' }
 
 function mondayOf(d: Date): Date {
