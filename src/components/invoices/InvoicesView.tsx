@@ -6,24 +6,9 @@ import { useUI } from '@/components/ui/UIProvider'
 import InvoiceDocument from '@/components/invoices/InvoiceDocument'
 import CreditNoteModal from '@/components/invoices/CreditNoteModal'
 import { formatCOP } from '@/lib/format'
+import { billingLabel, billingCls, serviceLabel, serviceCls } from '@/lib/status'
 import type { Client, Invoice, Service, CreditNote } from '@/types/database'
 import type { EmisorConfig } from '@/lib/dian/emisor-config'
-
-const STATUS_LABELS: Record<string, string> = {
-  draft: 'Borrador', processing: 'Procesando…', signed: 'Firmada', sent_dian: 'Enviada DIAN', rejected: 'Rechazada',
-}
-const STATUS_COLORS: Record<string, string> = {
-  draft: 'bg-gray-100 text-gray-600',
-  processing: 'bg-amber-100 text-amber-700',
-  signed: 'bg-blue-100 text-blue-700',
-  sent_dian: 'bg-green-100 text-green-700',
-  rejected: 'bg-red-100 text-red-700',
-}
-const SERVICE_STATUS: Record<string, { label: string; cls: string }> = {
-  scheduled: { label: 'Agendado', cls: 'bg-blue-100 text-blue-700' },
-  completed: { label: 'Completado', cls: 'bg-green-100 text-green-700' },
-  canceled: { label: 'Cancelado', cls: 'bg-red-100 text-red-700' },
-}
 
 interface Props {
   clients: Client[]
@@ -90,7 +75,9 @@ export default function InvoicesView({ clients, invoices: initial, creditNotes: 
     query = statusFilter === 'all' ? query.neq('status', 'canceled') : query.eq('status', statusFilter)
     if (dateFrom) query = query.gte('start_time', toUtc(dateFrom, false))
     if (dateTo) query = query.lte('start_time', toUtc(dateTo, true))
-    const { data, error } = await query.order('start_time')
+    // Cota de seguridad: si un cliente acumulara miles de servicios sin facturar,
+    // se acotan los resultados y se sugiere filtrar por fechas.
+    const { data, error } = await query.order('start_time').limit(200)
     if (error) toast('Error buscando servicios: ' + error.message, 'error')
     setServices(data ?? [])
     setHasSearched(true)
@@ -222,8 +209,8 @@ export default function InvoicesView({ clients, invoices: initial, creditNotes: 
                       <td className="px-4 py-2">{new Date(s.start_time).toLocaleDateString('es-CO')}</td>
                       <td className="px-4 py-2">{(s.cleaners as { full_name: string } | undefined)?.full_name ?? '—'}</td>
                       <td className="px-4 py-2">
-                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${SERVICE_STATUS[s.status]?.cls ?? 'bg-gray-100 text-gray-600'}`}>
-                          {SERVICE_STATUS[s.status]?.label ?? s.status}
+                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${serviceCls(s.status)}`}>
+                          {serviceLabel(s.status)}
                         </span>
                       </td>
                       <td className="px-4 py-2 text-right font-medium">{formatCOP(Number(s.price_cop))}</td>
@@ -276,8 +263,8 @@ export default function InvoicesView({ clients, invoices: initial, creditNotes: 
                 <td className="px-5 py-3 text-gray-500">{new Date(inv.issue_date).toLocaleDateString('es-CO')}</td>
                 <td className="px-5 py-3 text-right font-medium">{formatCOP(Number(inv.total_amount))}</td>
                 <td className="px-5 py-3">
-                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[inv.billing_status] ?? 'bg-gray-100 text-gray-600'}`}>
-                    {STATUS_LABELS[inv.billing_status] ?? inv.billing_status}
+                  <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${billingCls(inv.billing_status)}`}>
+                    {billingLabel(inv.billing_status)}
                   </span>
                 </td>
                 <td className="px-5 py-3 flex gap-2 justify-end">
@@ -330,8 +317,8 @@ export default function InvoicesView({ clients, invoices: initial, creditNotes: 
             <div key={inv.id} className="p-4">
               <div className="flex items-center justify-between gap-2">
                 <span className="font-mono text-sm font-semibold text-gray-800">{inv.invoice_number ?? 'BORRADOR'}</span>
-                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${STATUS_COLORS[inv.billing_status] ?? 'bg-gray-100 text-gray-600'}`}>
-                  {STATUS_LABELS[inv.billing_status] ?? inv.billing_status}
+                <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${billingCls(inv.billing_status)}`}>
+                  {billingLabel(inv.billing_status)}
                 </span>
               </div>
               <div className="mt-1 text-sm text-gray-600 flex items-center justify-between gap-2">

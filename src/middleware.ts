@@ -39,24 +39,19 @@ export async function middleware(request: NextRequest) {
   }
 
   // Forzar cambio de contraseña inicial ANTES de acceder a cualquier otra ruta
-  // (defensa en profundidad: la contraseña inicial = cédula es conocible).
+  // (defensa en profundidad: la contraseña inicial = cédula es conocible). El flag
+  // vive en app_metadata del JWT, que `getUser()` ya trae validado del servidor de
+  // auth: no se hace consulta extra a la base en cada request.
   if (user) {
     const allowedDuringChange =
       pathname.startsWith('/auth/change-password') ||
       pathname.startsWith('/api/auth/change-password') ||
       pathname.startsWith('/auth/logout')
-    if (!allowedDuringChange) {
-      const { data: profile } = await supabase
-        .from('user_profiles')
-        .select('must_change_password')
-        .eq('id', user.id)
-        .single()
-      if (profile?.must_change_password) {
-        if (pathname.startsWith('/api')) {
-          return NextResponse.json({ error: 'Debes cambiar tu contraseña antes de continuar.' }, { status: 403 })
-        }
-        return NextResponse.redirect(new URL('/auth/change-password', request.url))
+    if (!allowedDuringChange && user.app_metadata?.must_change_password === true) {
+      if (pathname.startsWith('/api')) {
+        return NextResponse.json({ error: 'Debes cambiar tu contraseña antes de continuar.' }, { status: 403 })
       }
+      return NextResponse.redirect(new URL('/auth/change-password', request.url))
     }
   }
 

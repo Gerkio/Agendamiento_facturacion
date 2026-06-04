@@ -39,7 +39,11 @@ export async function POST(req: NextRequest) {
     }
   }
 
-  const { error: updErr } = await admin.auth.admin.updateUserById(user.id, { password: newPassword })
+  const { error: updErr } = await admin.auth.admin.updateUserById(user.id, {
+    password: newPassword,
+    // Limpia el flag en el JWT; el middleware lo verá en el próximo request.
+    app_metadata: { must_change_password: false },
+  })
   if (updErr) {
     return NextResponse.json({ error: 'No se pudo actualizar: ' + updErr.message }, { status: 400 })
   }

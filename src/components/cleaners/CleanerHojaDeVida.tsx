@@ -2,11 +2,9 @@
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
+import { fmtDate } from '@/lib/format'
+import { novedadTypeLabel } from '@/lib/novedades'
 import type { Cleaner, Novedad } from '@/types/database'
-
-const NOV_LABEL: Record<string, string> = {
-  permiso: 'Permiso', vacaciones: 'Vacaciones', incapacidad: 'Incapacidad', otro: 'Otro',
-}
 
 interface Props {
   cleaner: Cleaner
@@ -47,7 +45,6 @@ export default function CleanerHojaDeVida({ cleaner, photoUrl, onClose }: Props)
   }, [supabase, cleaner.id])
 
   const initials = cleaner.full_name.split(' ').slice(0, 2).map(s => s[0]).join('').toUpperCase()
-  const fmtDate = (d?: string | null) => d ? new Date(d + 'T00:00:00').toLocaleDateString('es-CO') : '—'
 
   return (
     <div onClick={onClose} className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
@@ -97,7 +94,7 @@ export default function CleanerHojaDeVida({ cleaner, photoUrl, onClose }: Props)
                 {novedades.map(n => (
                   <li key={n.id} className="border border-gray-200 rounded-lg px-3 py-2 text-sm">
                     <div className="flex items-center justify-between gap-2">
-                      <span className="font-medium text-gray-800">{NOV_LABEL[n.type] ?? n.type} · {n.subject}</span>
+                      <span className="font-medium text-gray-800">{novedadTypeLabel(n.type)} · {n.subject}</span>
                       <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${n.status === 'pendiente' ? 'bg-amber-100 text-amber-700' : 'bg-green-100 text-green-700'}`}>
                         {n.status === 'pendiente' ? 'Pendiente' : 'Resuelta'}
                       </span>

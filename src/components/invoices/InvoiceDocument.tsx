@@ -1,7 +1,6 @@
 'use client'
 
 import { useEffect, useState } from 'react'
-import QRCode from 'qrcode'
 import type { Client, Invoice, Service } from '@/types/database'
 import type { EmisorConfig } from '@/lib/dian/emisor-config'
 import { numeroALetras } from '@/lib/dian/number-to-words'
@@ -34,7 +33,9 @@ export default function InvoiceDocument({ invoice, client, services, emisor, loa
   useEffect(() => {
     let active = true
     if (invoice.qr_content) {
-      QRCode.toDataURL(invoice.qr_content, { margin: 1, width: 180, errorCorrectionLevel: 'M' })
+      // Carga diferida: `qrcode` (~230 KB) solo se baja al abrir un documento con QR.
+      import('qrcode')
+        .then(({ default: QRCode }) => QRCode.toDataURL(invoice.qr_content!, { margin: 1, width: 180, errorCorrectionLevel: 'M' }))
         .then(u => { if (active) setQrUrl(u) })
         .catch(() => { if (active) setQrUrl(null) })
     } else {

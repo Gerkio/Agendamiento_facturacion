@@ -4,13 +4,11 @@ import { useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useUI } from '@/components/ui/UIProvider'
+import { fmtDate } from '@/lib/format'
+import { NOVEDAD_TYPES, novedadTypeLabel } from '@/lib/novedades'
 import type { Novedad, NovedadType, Cleaner } from '@/types/database'
 
-const TYPE_LABEL: Record<string, string> = { permiso: 'Permiso', vacaciones: 'Vacaciones', incapacidad: 'Incapacidad', otro: 'Otro' }
-const TYPES: NovedadType[] = ['permiso', 'vacaciones', 'incapacidad', 'otro']
-
 const cleanerName = (n: Novedad) => (n.cleaners as { full_name?: string } | undefined)?.full_name ?? '—'
-const fmtDate = (d?: string | null) => d ? new Date(d + 'T00:00:00').toLocaleDateString('es-CO') : '—'
 
 const emptyForm = { cleaner_id: '', type: 'permiso' as NovedadType, subject: '', description: '', responsible: '', start_date: new Date().toISOString().slice(0, 10), due_date: '' }
 
@@ -132,7 +130,7 @@ export default function NovedadesTable({ novedades: initial, cleaners }: { noved
                 <td className="px-4 py-3 text-gray-600">{fmtDate(n.start_date)}</td>
                 <td className="px-4 py-3 font-mono text-xs">{n.cod}</td>
                 <td className="px-4 py-3 font-medium text-gray-800">{cleanerName(n)}</td>
-                <td className="px-4 py-3 text-gray-600">{TYPE_LABEL[n.type]}</td>
+                <td className="px-4 py-3 text-gray-600">{novedadTypeLabel(n.type)}</td>
                 <td className="px-4 py-3 text-gray-700 max-w-[260px] truncate">{n.subject}</td>
                 <td className="px-4 py-3"><StatusBadge s={n.status} /></td>
                 <td className="px-4 py-3 text-gray-600">{n.responsible ?? '—'}</td>
@@ -154,7 +152,7 @@ export default function NovedadesTable({ novedades: initial, cleaners }: { noved
                 <span className="font-semibold text-gray-800">{cleanerName(n)}</span>
                 <StatusBadge s={n.status} />
               </div>
-              <div className="text-sm text-gray-700 mt-1">{TYPE_LABEL[n.type]} · {n.subject}</div>
+              <div className="text-sm text-gray-700 mt-1">{novedadTypeLabel(n.type)} · {n.subject}</div>
               <div className="text-xs text-gray-500 mt-0.5">{n.cod} · inicio {fmtDate(n.start_date)}{n.due_date ? ` · límite ${fmtDate(n.due_date)}` : ''}</div>
               <button type="button" onClick={() => openDetail(n)} className="mt-3 w-full py-2 rounded-lg border border-brand-300 text-brand-700 font-medium hover:bg-brand-50">Ver</button>
             </div>
@@ -181,7 +179,7 @@ export default function NovedadesTable({ novedades: initial, cleaners }: { noved
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Tipo</label>
                 <select title="Tipo" value={form.type} onChange={e => set('type', e.target.value)} className="w-full border border-gray-400 rounded-lg px-3 py-2 text-sm">
-                  {TYPES.map(t => <option key={t} value={t}>{TYPE_LABEL[t]}</option>)}
+                  {NOVEDAD_TYPES.map(t => <option key={t} value={t}>{novedadTypeLabel(t)}</option>)}
                 </select>
               </div>
               <div>
@@ -221,7 +219,7 @@ export default function NovedadesTable({ novedades: initial, cleaners }: { noved
             <div className="flex items-center justify-between p-5 border-b">
               <div>
                 <h2 className="text-lg font-semibold">{detail.cod}</h2>
-                <div className="text-sm text-gray-600">{cleanerName(detail)} · {TYPE_LABEL[detail.type]}</div>
+                <div className="text-sm text-gray-600">{cleanerName(detail)} · {novedadTypeLabel(detail.type)}</div>
               </div>
               <button type="button" onClick={() => setDetail(null)} aria-label="Cerrar" className="text-gray-600 hover:text-gray-800 text-xl">✕</button>
             </div>

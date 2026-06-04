@@ -1,6 +1,8 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect, notFound } from 'next/navigation'
 import ClientDetail from '@/components/clients/ClientDetail'
+import ClientServicesTab from '@/components/clients/ClientServicesTab'
+import ClientPaymentsTab from '@/components/clients/ClientPaymentsTab'
 import { isUuid } from '@/lib/validate'
 import type { ClientAddress, Service, Invoice } from '@/types/database'
 
@@ -29,12 +31,17 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
     photoUrl = data?.signedUrl ?? null
   }
 
+  const serviceList = (services ?? []) as Service[]
+  const invoiceList = (invoices ?? []) as Invoice[]
+
   return (
     <ClientDetail
       client={client}
       addresses={(addresses ?? []) as ClientAddress[]}
-      services={(services ?? []) as Service[]}
-      invoices={(invoices ?? []) as Invoice[]}
+      servicesCount={serviceList.length}
+      invoicesCount={invoiceList.length}
+      serviciosTab={<ClientServicesTab services={serviceList} />}
+      pagosTab={<ClientPaymentsTab invoices={invoiceList} />}
       photoUrl={photoUrl}
     />
   )

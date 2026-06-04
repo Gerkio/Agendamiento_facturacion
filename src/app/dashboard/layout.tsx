@@ -11,7 +11,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   const { data: profile } = await supabase
     .from('user_profiles')
-    .select('*')
+    .select('role, must_change_password')
     .eq('id', user.id)
     .single()
 

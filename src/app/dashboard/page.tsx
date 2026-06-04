@@ -9,7 +9,7 @@ export default async function DashboardPage() {
 
   const { data: profile } = await supabase
     .from('user_profiles')
-    .select('*')
+    .select('role, cleaner_id')
     .eq('id', user.id)
     .single()
 

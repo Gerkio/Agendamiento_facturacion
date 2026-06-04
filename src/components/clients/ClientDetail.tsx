@@ -6,25 +6,11 @@ import { createClient } from '@/lib/supabase/client'
 import { useUI } from '@/components/ui/UIProvider'
 import Avatar from '@/components/ui/Avatar'
 import { calcularDV } from '@/lib/dian/dv'
-import { formatCOP } from '@/lib/format'
 import { cityName } from '@/lib/dian/cities'
 import { CITY_OPTIONS, TAX_SCHEMES, FISCAL_REGIMENS, CUSTOMER_TYPES, ORIGENES, NATURALEZAS, deriveCompanyName } from '@/lib/clients'
-import type { Client, ClientAddress, Service, Invoice } from '@/types/database'
+import type { Client, ClientAddress } from '@/types/database'
 
-const SERVICE_STATUS: Record<string, { label: string; cls: string }> = {
-  scheduled: { label: 'Agendado', cls: 'bg-blue-100 text-blue-700' },
-  completed: { label: 'Completado', cls: 'bg-green-100 text-green-700' },
-  canceled: { label: 'Cancelado', cls: 'bg-red-100 text-red-700' },
-}
-const PAY_STATUS: Record<string, { label: string; cls: string }> = {
-  draft: { label: 'Borrador', cls: 'bg-gray-100 text-gray-600' },
-  processing: { label: 'Procesando', cls: 'bg-amber-100 text-amber-700' },
-  signed: { label: 'Firmada', cls: 'bg-blue-100 text-blue-700' },
-  sent_dian: { label: 'Enviada DIAN', cls: 'bg-green-100 text-green-700' },
-  rejected: { label: 'Rechazada', cls: 'bg-red-100 text-red-700' },
-}
 const input = 'w-full border border-gray-400 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500'
-const fmtDate = (d?: string | null) => d ? new Date(d).toLocaleDateString('es-CO') : '—'
 
 const TABS = [
   { id: 'datos', label: 'Datos' },
@@ -36,14 +22,18 @@ const TABS = [
 interface Props {
   client: Client
   addresses: ClientAddress[]
-  services: Service[]
-  invoices: Invoice[]
+  /** Conteos para los badges de las pestañas (los datos viven en los nodos server). */
+  servicesCount: number
+  invoicesCount: number
+  /** Pestañas de solo-lectura renderizadas en el servidor. */
+  serviciosTab: React.ReactNode
+  pagosTab: React.ReactNode
   photoUrl: string | null
 }
 
 const emptyAddr = { label: '', address: '', city_code: '11001', indicaciones: '', is_primary: false }
 
-export default function ClientDetail({ client, addresses: initialAddr, services, invoices, photoUrl }: Props) {
+export default function ClientDetail({ client, addresses: initialAddr, servicesCount, invoicesCount, serviciosTab, pagosTab, photoUrl }: Props) {
   const supabase = createClient()
   const router = useRouter()
   const { toast, confirm } = useUI()
@@ -161,7 +151,7 @@ export default function ClientDetail({ client, addresses: initialAddr, services,
         {TABS.map(t => (
           <button key={t.id} type="button" onClick={() => setTab(t.id)}
             className={`px-4 py-2 text-sm whitespace-nowrap border-b-2 -mb-px ${tab === t.id ? 'border-brand-600 text-brand-700 font-semibold' : 'border-transparent text-gray-600 hover:text-gray-800'}`}>
-            {t.label}{t.id === 'servicios' ? ` (${services.length})` : t.id === 'pagos' ? ` (${invoices.length})` : t.id === 'direcciones' ? ` (${addresses.length})` : ''}
+            {t.label}{t.id === 'servicios' ? ` (${servicesCount})` : t.id === 'pagos' ? ` (${invoicesCount})` : t.id === 'direcciones' ? ` (${addresses.length})` : ''}
           </button>
         ))}
       </div>
@@ -288,51 +278,11 @@ export default function ClientDetail({ client, addresses: initialAddr, services,
         </div>
       )}
 
-      {/* ── HISTÓRICO DE SERVICIOS ── */}
-      {tab === 'servicios' && (
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-          <div className="overflow-x-auto"><table className="w-full text-sm min-w-[560px]">
-            <thead className="bg-gray-50 text-gray-500 text-xs uppercase"><tr>
-              <th className="text-left px-4 py-3">Fecha</th><th className="text-left px-4 py-3">Auxiliar</th>
-              <th className="text-left px-4 py-3">Estado</th><th className="text-right px-4 py-3">Precio</th>
-            </tr></thead>
-            <tbody className="divide-y divide-gray-100">
-              {services.length === 0 && <tr><td colSpan={4} className="py-10 text-center text-gray-500">Sin servicios.</td></tr>}
-              {services.map(s => (
-                <tr key={s.id}>
-                  <td className="px-4 py-3 text-gray-600">{new Date(s.start_time).toLocaleString('es-CO', { dateStyle: 'short', timeStyle: 'short' })}</td>
-                  <td className="px-4 py-3 text-gray-700">{(s.cleaners as { full_name?: string } | undefined)?.full_name ?? '—'}</td>
-                  <td className="px-4 py-3"><span className={`text-xs px-2 py-0.5 rounded-full font-medium ${SERVICE_STATUS[s.status]?.cls ?? ''}`}>{SERVICE_STATUS[s.status]?.label ?? s.status}</span></td>
-                  <td className="px-4 py-3 text-right font-medium">{formatCOP(Number(s.price_cop))}</td>
-                </tr>
-              ))}
-            </tbody>
-          </table></div>
-        </div>
-      )}
+      {/* ── HISTÓRICO DE SERVICIOS (server) ── */}
+      {tab === 'servicios' && serviciosTab}
 
-      {/* ── ÚLTIMOS PAGOS ── */}
-      {tab === 'pagos' && (
-        <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-          <div className="overflow-x-auto"><table className="w-full text-sm min-w-[560px]">
-            <thead className="bg-gray-50 text-gray-500 text-xs uppercase"><tr>
-              <th className="text-left px-4 py-3">N° Factura</th><th className="text-left px-4 py-3">Fecha</th>
-              <th className="text-right px-4 py-3">Total</th><th className="text-left px-4 py-3">Estado</th>
-            </tr></thead>
-            <tbody className="divide-y divide-gray-100">
-              {invoices.length === 0 && <tr><td colSpan={4} className="py-10 text-center text-gray-500">Sin facturas.</td></tr>}
-              {invoices.map(inv => (
-                <tr key={inv.id}>
-                  <td className="px-4 py-3 font-mono text-xs">{inv.invoice_number ?? 'BORRADOR'}</td>
-                  <td className="px-4 py-3 text-gray-600">{fmtDate(inv.issue_date)}</td>
-                  <td className="px-4 py-3 text-right font-medium">{formatCOP(Number(inv.total_amount))}</td>
-                  <td className="px-4 py-3"><span className={`text-xs px-2 py-0.5 rounded-full font-medium ${PAY_STATUS[inv.billing_status]?.cls ?? ''}`}>{PAY_STATUS[inv.billing_status]?.label ?? inv.billing_status}</span></td>
-                </tr>
-              ))}
-            </tbody>
-          </table></div>
-        </div>
-      )}
+      {/* ── ÚLTIMOS PAGOS (server) ── */}
+      {tab === 'pagos' && pagosTab}
 
       {/* Modal dirección */}
       {addrModal && (

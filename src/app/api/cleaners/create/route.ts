@@ -39,6 +39,8 @@ export async function POST(req: NextRequest) {
     password: cedula,
     email_confirm: true,
     user_metadata: { full_name: fullName, cedula },
+    // El middleware lee este flag del JWT (sin consultar la BD por request).
+    app_metadata: { must_change_password: true },
   })
 
   if (createErr || !created?.user) {

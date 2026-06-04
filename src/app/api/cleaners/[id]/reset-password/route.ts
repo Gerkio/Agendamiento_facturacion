@@ -52,7 +52,11 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
 
   const newPassword = customPassword ?? cleaner.document_id
 
-  const { error: updErr } = await admin.auth.admin.updateUserById(profile.id, { password: newPassword })
+  const { error: updErr } = await admin.auth.admin.updateUserById(profile.id, {
+    password: newPassword,
+    // Vuelve a exigir cambio de contraseña (flag leído por el middleware desde el JWT).
+    app_metadata: { must_change_password: true },
+  })
   if (updErr) {
     return NextResponse.json({ error: 'No se pudo resetear: ' + updErr.message }, { status: 400 })
   }

@@ -1,6 +1,7 @@
 import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import ClientsTable from '@/components/clients/ClientsTable'
+import type { Client } from '@/types/database'
 
 export default async function ClientsPage() {
   const supabase = await createClient()
@@ -10,15 +11,24 @@ export default async function ClientsPage() {
   const { data: profile } = await supabase.from('user_profiles').select('role').eq('id', user.id).single()
   if (profile?.role !== 'admin') redirect('/dashboard')
 
-  const { data: clients } = await supabase.from('clients').select('*').order('company_name')
+  // La lista solo muestra estas columnas; la ficha de detalle recarga el cliente
+  // completo. Evita traer los campos pesados/AMARU de cada fila.
+  const { data: clients } = await supabase
+    .from('clients')
+    .select('id, company_name, nit_cedula, dv, email, city_code, is_active, photo_url, indicaciones')
+    .order('company_name')
+    .returns<Client[]>()
 
+  // URLs firmadas en paralelo (una sola tanda) en vez de secuencial por fila.
   const photoUrls: Record<string, string> = {}
-  for (const c of clients ?? []) {
-    if (c.photo_url) {
-      const { data } = await supabase.storage.from('client-photos').createSignedUrl(c.photo_url, 3600)
-      if (data?.signedUrl) photoUrls[c.id] = data.signedUrl
-    }
-  }
+  await Promise.all(
+    (clients ?? [])
+      .filter(c => c.photo_url)
+      .map(async c => {
+        const { data } = await supabase.storage.from('client-photos').createSignedUrl(c.photo_url!, 3600)
+        if (data?.signedUrl) photoUrls[c.id] = data.signedUrl
+      })
+  )
 
   return (
     <div>
