@@ -15,7 +15,7 @@
     "validate:credit-note": "node --conditions=react-server scripts/validate-credit-note.mjs"
   },
   "engines": {
-    "node": ">=20"
+    "node": "22.x"
   },
   "dependencies": {
     "@supabase/ssr": "^0.10.3",
