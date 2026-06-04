@@ -7,6 +7,15 @@ export interface Cleaner {
   document_id: string
   phone: string | null
   is_active: boolean
+  /** Hoja de vida (AMARU). */
+  photo_url?: string | null
+  emergency_phone?: string | null
+  emergency_contact_name?: string | null
+  birth_date?: string | null
+  address?: string | null
+  eps?: string | null
+  arl?: string | null
+  hire_date?: string | null
   created_at: string
 }
 
@@ -23,6 +32,8 @@ export interface Client {
   fiscal_regimen: string
   /** Indicaciones de llegada (texto libre) para que el aseador encuentre la casa. */
   indicaciones?: string | null
+  /** Forma de pago del cliente (p.ej. "Crédito 30 días"). */
+  forma_pago?: string | null
   created_at: string
 }
 
@@ -70,8 +81,33 @@ export interface Service {
   recurrence_group_id: string | null
   invoice_id: string | null
   price_cop: number
+  /** Campos AMARU. */
+  service_type?: string | null
+  obs_auxiliar?: string | null
+  obs_internas?: string | null
   created_at: string
   clients?: Client
+  cleaners?: Cleaner
+}
+
+export type NovedadType = 'permiso' | 'vacaciones' | 'incapacidad' | 'otro'
+export type NovedadStatus = 'pendiente' | 'resuelta'
+
+export interface Novedad {
+  id: string
+  cleaner_id: string
+  cod: string | null
+  type: NovedadType
+  subject: string
+  description: string | null
+  status: NovedadStatus
+  responsible: string | null
+  last_observation: string | null
+  start_date: string
+  due_date: string | null
+  resolved_at: string | null
+  created_by: string | null
+  created_at: string
   cleaners?: Cleaner
 }
 

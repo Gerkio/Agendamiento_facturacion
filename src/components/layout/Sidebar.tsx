@@ -8,12 +8,14 @@ import type { UserRole } from '@/types/database'
 interface SidebarProps {
   role: UserRole
   userEmail: string
+  pendingNovedades?: number
 }
 
 const adminLinks = [
-  { href: '/dashboard', label: 'Calendario', icon: '📅' },
+  { href: '/dashboard', label: 'Agenda', icon: '📅' },
+  { href: '/dashboard/cleaners', label: 'Auxiliares', icon: '🧹' },
   { href: '/dashboard/clients', label: 'Clientes', icon: '🏢' },
-  { href: '/dashboard/cleaners', label: 'Limpiadores', icon: '🧹' },
+  { href: '/dashboard/novedades', label: 'Novedades', icon: '📋' },
   { href: '/dashboard/invoices', label: 'Facturación', icon: '🧾' },
   { href: '/dashboard/debug', label: 'Debug DIAN', icon: '🔧' },
 ]
@@ -22,7 +24,7 @@ const cleanerLinks = [
   { href: '/dashboard', label: 'Mi Calendario', icon: '📅' },
 ]
 
-export default function Sidebar({ role, userEmail }: SidebarProps) {
+export default function Sidebar({ role, userEmail, pendingNovedades = 0 }: SidebarProps) {
   const pathname = usePathname()
   const links = role === 'admin' ? adminLinks : cleanerLinks
   const [open, setOpen] = useState(false)
@@ -74,7 +76,10 @@ export default function Sidebar({ role, userEmail }: SidebarProps) {
                 className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-base transition ${active ? 'bg-brand-600 text-white font-semibold' : 'text-gray-700 hover:bg-gray-100'}`}
               >
                 <span className="text-lg" aria-hidden="true">{link.icon}</span>
-                {link.label}
+                <span className="flex-1">{link.label}</span>
+                {link.href === '/dashboard/novedades' && pendingNovedades > 0 && (
+                  <span className={`text-xs font-bold rounded-full px-2 py-0.5 ${active ? 'bg-white text-brand-700' : 'bg-red-600 text-white'}`}>{pendingNovedades}</span>
+                )}
               </Link>
             )
           })}

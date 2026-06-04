@@ -20,10 +20,17 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   const role = profile?.role ?? 'cleaner'
 
+  // Conteo de novedades pendientes para el badge del menú (solo admin).
+  let pendingNovedades = 0
+  if (role === 'admin') {
+    const { count } = await supabase.from('novedades').select('id', { count: 'exact', head: true }).eq('status', 'pendiente')
+    pendingNovedades = count ?? 0
+  }
+
   return (
     <UIProvider>
       <div className="flex flex-col md:flex-row h-screen overflow-hidden bg-gray-50">
-        <Sidebar role={role} userEmail={user.email ?? ''} />
+        <Sidebar role={role} userEmail={user.email ?? ''} pendingNovedades={pendingNovedades} />
         <main className="flex-1 overflow-y-auto p-4 md:p-6">{children}</main>
       </div>
     </UIProvider>

@@ -42,10 +42,24 @@ export default function ServiceDetail({ service, onClose }: { service: Service; 
             </div>
           </div>
 
+          {service.service_type && (
+            <div>
+              <div className="text-xs text-gray-600">Tipo de servicio</div>
+              <div className="text-gray-700">{service.service_type}</div>
+            </div>
+          )}
+
           <div>
             <div className="text-xs text-gray-600">Dirección</div>
             <div className="text-gray-700">{client?.address || '—'}</div>
           </div>
+
+          {service.obs_auxiliar && (
+            <div className="bg-amber-50 border border-amber-200 rounded-lg p-3">
+              <div className="text-xs font-semibold text-amber-800 flex items-center gap-1 mb-1">📋 Observaciones para ti</div>
+              <p className="text-gray-800 whitespace-pre-wrap leading-relaxed">{service.obs_auxiliar}</p>
+            </div>
+          )}
 
           {client?.phone && (
             <div>

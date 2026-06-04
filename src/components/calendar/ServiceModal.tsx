@@ -4,6 +4,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useUI } from '@/components/ui/UIProvider'
+import CleanerHojaDeVida from '@/components/cleaners/CleanerHojaDeVida'
 import type { Service, Client, Cleaner } from '@/types/database'
 
 interface Props {
@@ -48,17 +49,11 @@ const TIME_SLOTS: string[] = (() => {
   return out
 })()
 
-// Duraciones comunes de un servicio de aseo (en minutos).
+// Turnos de un servicio de aseo (en minutos).
 const DURATIONS: { mins: number; label: string }[] = [
-  { mins: 30, label: '30 minutos' },
-  { mins: 60, label: '1 hora' },
-  { mins: 90, label: '1 hora 30 min' },
-  { mins: 120, label: '2 horas' },
-  { mins: 150, label: '2 horas 30 min' },
-  { mins: 180, label: '3 horas' },
-  { mins: 240, label: '4 horas' },
-  { mins: 300, label: '5 horas' },
-  { mins: 480, label: '8 horas (jornada)' },
+  { mins: 120, label: 'Turno de prueba (2 horas)' },
+  { mins: 240, label: 'Media jornada (4 horas)' },
+  { mins: 450, label: 'Jornada completa (7 h 30 min)' },
 ]
 
 const datePart = (local: string) => local.slice(0, 10)   // "YYYY-MM-DD"
@@ -97,7 +92,19 @@ export default function ServiceModal({ service, isNew, defaultStart, services, c
     price_cop: service?.price_cop?.toString() ?? '',
     status: service?.status ?? 'scheduled',
     recurrence: 'none',
+    service_type: service?.service_type ?? 'Normal',
+    obs_auxiliar: service?.obs_auxiliar ?? '',
+    obs_internas: service?.obs_internas ?? '',
   })
+
+  const [showHoja, setShowHoja] = useState(false)
+  const [showClientInfo, setShowClientInfo] = useState(false)
+  const [showResumen, setShowResumen] = useState(false)
+  const [updatingReq, setUpdatingReq] = useState(false)
+
+  const selectedClient = clients.find(c => c.id === form.client_id)
+  const selectedCleaner = cleaners.find(c => c.id === form.cleaner_id)
+  const periodicidad = RECURRENCE_OPTIONS.find(o => o.value === form.recurrence)?.label ?? 'Una sola vez'
 
   // Cierre con Escape
   useEffect(() => {
@@ -192,6 +199,9 @@ export default function ServiceModal({ service, isNew, defaultStart, services, c
             status: 'scheduled',
             is_recurring: days > 0,
             recurrence_group_id: groupId,
+            service_type: form.service_type || null,
+            obs_auxiliar: form.obs_auxiliar || null,
+            obs_internas: form.obs_internas || null,
           }
         })
         const { error } = await supabase.from('services').insert(rows)
@@ -204,6 +214,9 @@ export default function ServiceModal({ service, isNew, defaultStart, services, c
           end_time: endISO,
           price_cop: price,
           status: form.status as Service['status'],
+          service_type: form.service_type || null,
+          obs_auxiliar: form.obs_auxiliar || null,
+          obs_internas: form.obs_internas || null,
         }).eq('id', service.id)
         if (error) throw error
       }
@@ -227,16 +240,39 @@ export default function ServiceModal({ service, isNew, defaultStart, services, c
     router.refresh()
   }
 
+  // Actualiza solo tipo + observaciones de un servicio existente.
+  async function handleUpdateRequisitos() {
+    if (!service) return
+    setUpdatingReq(true)
+    const { error } = await supabase.from('services').update({
+      service_type: form.service_type || null,
+      obs_auxiliar: form.obs_auxiliar || null,
+      obs_internas: form.obs_internas || null,
+    }).eq('id', service.id)
+    setUpdatingReq(false)
+    if (error) { toast('No se pudo actualizar: ' + error.message, 'error'); return }
+    toast('Requisitos actualizados.', 'success')
+  }
+
   const noClients = clients.length === 0
   const noCleaners = cleaners.length === 0
   const canSave = !!form.client_id && !!form.cleaner_id && !endBeforeStart && !loading
 
   return (
+    <>
     <div onClick={onClose} className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
       <div onClick={e => e.stopPropagation()} className="bg-white rounded-2xl shadow-xl w-full max-w-md md:max-w-2xl max-h-[92vh] overflow-y-auto">
         <div className="flex items-center justify-between p-5 border-b sticky top-0 bg-white z-10">
-          <h2 className="text-lg font-semibold">{isNew ? '🗓️ Agendar servicio' : 'Editar servicio'}</h2>
-          <button type="button" onClick={onClose} aria-label="Cerrar" className="text-gray-600 hover:text-gray-600 text-xl">✕</button>
+          <div className="min-w-0">
+            <h2 className="text-lg font-semibold truncate">{isNew ? '🗓️ Agendar servicio' : 'Servicio agendado'}</h2>
+            {!isNew && selectedCleaner && (
+              <div className="flex items-center gap-2 mt-0.5">
+                <span className="text-sm text-gray-600 truncate">{selectedCleaner.full_name}</span>
+                <button type="button" onClick={() => setShowHoja(true)} className="text-xs px-2 py-0.5 rounded border border-brand-300 text-brand-700 hover:bg-brand-50 whitespace-nowrap">📇 Hoja de vida</button>
+              </div>
+            )}
+          </div>
+          <button type="button" onClick={onClose} aria-label="Cerrar" className="text-gray-600 hover:text-gray-800 text-xl">✕</button>
         </div>
 
         <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -248,7 +284,12 @@ export default function ServiceModal({ service, isNew, defaultStart, services, c
           )}
 
           <div>
-            <label className="block text-sm font-medium text-gray-700 mb-1">¿Para qué cliente?</label>
+            <div className="flex items-center justify-between mb-1">
+              <label className="block text-sm font-medium text-gray-700">¿Para qué cliente?</label>
+              {selectedClient && (
+                <button type="button" onClick={() => setShowClientInfo(true)} className="text-xs px-2 py-0.5 rounded border border-gray-300 text-gray-600 hover:bg-gray-50">ℹ️ Info</button>
+              )}
+            </div>
             <select title="Cliente" value={form.client_id} onChange={e => set('client_id', e.target.value)} className={input}>
               <option value="">Elige un cliente…</option>
               {clients.map(c => <option key={c.id} value={c.id}>{c.company_name}</option>)}
@@ -277,14 +318,50 @@ export default function ServiceModal({ service, isNew, defaultStart, services, c
           </div>
 
           <div className="md:col-span-2">
-            <label className="block text-sm font-medium text-gray-700 mb-1">⏱️ Duración</label>
-            <select title="Duración" value={String(durMins)} onChange={e => onDurationChange(Number(e.target.value))} className={input}>
+            <label className="block text-sm font-medium text-gray-700 mb-1">⏱️ Turno</label>
+            <select title="Turno" value={String(durMins)} onChange={e => onDurationChange(Number(e.target.value))} className={input}>
               {durMins > 0 && !DURATIONS.some(d => d.mins === durMins) && (
                 <option value={String(durMins)}>{formatDur(durMins)} (personalizada)</option>
               )}
               {DURATIONS.map(d => <option key={d.mins} value={String(d.mins)}>{d.label}</option>)}
             </select>
             <p className="text-xs text-gray-500 mt-1">Termina a las <strong>{timePart(form.end_time)}</strong>{duration ? ` · dura ${duration}` : ''}</p>
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Tipo de servicio</label>
+            <input title="Tipo" type="text" value={form.service_type} onChange={e => set('service_type', e.target.value)} className={input} placeholder="Ej: Normal, Profundo…" />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium text-gray-700 mb-1">Forma de pago</label>
+            <input title="Forma de pago" type="text" readOnly value={selectedClient?.forma_pago || 'No definida en el cliente'} className={input + ' bg-gray-100 text-gray-600'} />
+          </div>
+
+          {!isNew && (
+            <div className="md:col-span-2">
+              <label className="block text-sm font-medium text-gray-700 mb-1">Periodicidad</label>
+              <input title="Periodicidad" type="text" readOnly value={service?.is_recurring ? 'Recurrente (servicio fijo)' : 'Una sola vez'} className={input + ' bg-gray-100 text-gray-600'} />
+            </div>
+          )}
+
+          {/* Requisitos: observaciones para el auxiliar e internas */}
+          <div className="md:col-span-2 border border-gray-200 rounded-lg p-3 space-y-3">
+            <p className="text-sm font-semibold text-gray-700">📋 Requisitos del servicio</p>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Observaciones para el auxiliar (las verá el aseador)</label>
+              <textarea value={form.obs_auxiliar} onChange={e => set('obs_auxiliar', e.target.value)} rows={2} className={input + ' resize-none'} placeholder="Ej: Traer escalera; el portón principal está dañado, usar el lateral." />
+            </div>
+            <div>
+              <label className="block text-xs font-medium text-gray-600 mb-1">Observaciones internas (solo administración)</label>
+              <textarea value={form.obs_internas} onChange={e => set('obs_internas', e.target.value)} rows={2} className={input + ' resize-none'} placeholder="Notas internas; el aseador NO las ve." />
+            </div>
+            {!isNew && (
+              <button type="button" onClick={handleUpdateRequisitos} disabled={updatingReq}
+                className="w-full text-sm px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50 disabled:opacity-50">
+                {updatingReq ? 'Actualizando…' : '🔄 Actualizar Requisitos'}
+              </button>
+            )}
           </div>
 
           {conflict && (
@@ -319,6 +396,12 @@ export default function ServiceModal({ service, isNew, defaultStart, services, c
             </div>
           )}
 
+          {(form.client_id && form.cleaner_id) && (
+            <button type="button" onClick={() => setShowResumen(true)} className="md:col-span-2 text-sm px-4 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50">
+              👁️ Mostrar resumen del servicio
+            </button>
+          )}
+
           {error && <div className="md:col-span-2 bg-red-50 border border-red-200 text-red-700 rounded-lg px-3 py-2 text-sm">{error}</div>}
         </div>
 
@@ -336,6 +419,68 @@ export default function ServiceModal({ service, isNew, defaultStart, services, c
           </div>
         </div>
       </div>
+    </div>
+
+    {showHoja && selectedCleaner && (
+      <CleanerHojaDeVida cleaner={selectedCleaner} onClose={() => setShowHoja(false)} />
+    )}
+
+    {showClientInfo && selectedClient && (
+      <div onClick={() => setShowClientInfo(false)} className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
+        <div onClick={e => e.stopPropagation()} className="bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+          <div className="flex items-center justify-between p-5 border-b">
+            <h2 className="text-lg font-semibold">{selectedClient.company_name}</h2>
+            <button type="button" onClick={() => setShowClientInfo(false)} aria-label="Cerrar" className="text-gray-600 hover:text-gray-800 text-xl">✕</button>
+          </div>
+          <div className="p-5 space-y-2 text-sm">
+            <p><span className="text-gray-500">NIT/CC:</span> {selectedClient.nit_cedula}-{selectedClient.dv}</p>
+            <p><span className="text-gray-500">Dirección:</span> {selectedClient.address}</p>
+            <p><span className="text-gray-500">Teléfono:</span> {selectedClient.phone ?? '—'}</p>
+            <p><span className="text-gray-500">Correo:</span> {selectedClient.email}</p>
+            <p><span className="text-gray-500">Forma de pago:</span> {selectedClient.forma_pago || '—'}</p>
+            {selectedClient.indicaciones && (
+              <div className="bg-brand-50 border border-brand-200 rounded-lg p-3 mt-2">
+                <div className="text-xs font-semibold text-brand-700 mb-1">🧭 Indicaciones de llegada</div>
+                <p className="text-gray-800 whitespace-pre-wrap">{selectedClient.indicaciones}</p>
+              </div>
+            )}
+          </div>
+        </div>
+      </div>
+    )}
+
+    {showResumen && (
+      <div onClick={() => setShowResumen(false)} className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
+        <div onClick={e => e.stopPropagation()} className="bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
+          <div className="flex items-center justify-between p-5 border-b">
+            <h2 className="text-lg font-semibold">Resumen del servicio</h2>
+            <button type="button" onClick={() => setShowResumen(false)} aria-label="Cerrar" className="text-gray-600 hover:text-gray-800 text-xl">✕</button>
+          </div>
+          <div className="p-5 space-y-2 text-sm">
+            <ResumenRow k="Cliente" v={selectedClient?.company_name ?? '—'} />
+            <ResumenRow k="Auxiliar" v={selectedCleaner?.full_name ?? '—'} />
+            <ResumenRow k="Fecha" v={new Date(form.start_time + ':00').toLocaleDateString('es-CO', { dateStyle: 'full' })} />
+            <ResumenRow k="Entrada / Salida" v={`${timePart(form.start_time)} – ${timePart(form.end_time)}`} />
+            <ResumenRow k="Turno" v={duration ?? '—'} />
+            <ResumenRow k="Tipo" v={form.service_type || '—'} />
+            <ResumenRow k="Periodicidad" v={isNew ? periodicidad : (service?.is_recurring ? 'Recurrente (fijo)' : 'Una sola vez')} />
+            <ResumenRow k="Forma de pago" v={selectedClient?.forma_pago || '—'} />
+            <ResumenRow k="Valor" v={form.price_cop ? new Intl.NumberFormat('es-CO', { style: 'currency', currency: 'COP', maximumFractionDigits: 0 }).format(Number(form.price_cop)) : '—'} />
+            <ResumenRow k="Dirección" v={selectedClient?.address ?? '—'} />
+            {form.obs_auxiliar && <ResumenRow k="Obs. auxiliar" v={form.obs_auxiliar} />}
+          </div>
+        </div>
+      </div>
+    )}
+    </>
+  )
+}
+
+function ResumenRow({ k, v }: { k: string; v: string }) {
+  return (
+    <div className="flex gap-3">
+      <span className="text-gray-500 min-w-[120px]">{k}:</span>
+      <span className="text-gray-800 flex-1">{v}</span>
     </div>
   )
 }

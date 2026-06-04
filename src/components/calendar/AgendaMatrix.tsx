@@ -89,7 +89,7 @@ export default function AgendaMatrix({ cleaners, clients, isAdmin, cleanerId }: 
     setLoading(true)
     let q = supabase
       .from('services')
-      .select('*, clients(company_name, address, phone, indicaciones), cleaners(full_name)')
+      .select('*, clients(company_name, address, phone, indicaciones, forma_pago), cleaners(full_name)')
       .neq('status', 'canceled')
       .gte('start_time', weekStart.toISOString())
       .lt('start_time', addDays(weekStart, 7).toISOString())
@@ -183,6 +183,7 @@ export default function AgendaMatrix({ cleaners, clients, isAdmin, cleanerId }: 
       start_time: addDays(new Date(s.start_time), 7).toISOString(),
       end_time: addDays(new Date(s.end_time), 7).toISOString(),
       status: 'scheduled', is_recurring: false, recurrence_group_id: null, price_cop: s.price_cop,
+      service_type: s.service_type ?? null,
     }))
     const { error } = await supabase.from('services').insert(rowsToInsert)
     setBusy(false)
