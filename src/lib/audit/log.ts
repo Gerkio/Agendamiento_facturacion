@@ -12,6 +12,8 @@ export type AuditAction =
   | 'dian_rejected'
   | 'cleaner_created'
   | 'cleaner_photo_updated'
+  | 'client_updated'
+  | 'client_photo_updated'
   | 'password_reset'
 
 export type AuditResult = 'success' | 'warning' | 'failure'

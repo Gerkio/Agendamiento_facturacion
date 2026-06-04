@@ -34,6 +34,30 @@ export interface Client {
   indicaciones?: string | null
   /** Forma de pago del cliente (p.ej. "Crédito 30 días"). */
   forma_pago?: string | null
+  /** Campos AMARU. */
+  photo_url?: string | null
+  naturaleza?: string
+  first_name?: string | null
+  second_name?: string | null
+  first_surname?: string | null
+  second_surname?: string | null
+  sucursal?: string | null
+  customer_type?: string | null
+  origen?: string | null
+  observaciones?: string | null
+  phone2?: string | null
+  is_active?: boolean
+  created_at: string
+}
+
+export interface ClientAddress {
+  id: string
+  client_id: string
+  label: string | null
+  address: string
+  city_code: string
+  indicaciones: string | null
+  is_primary: boolean
   created_at: string
 }
 

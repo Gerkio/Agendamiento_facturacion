@@ -4,6 +4,7 @@ import { useMemo, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useUI } from '@/components/ui/UIProvider'
 import CleanerHojaDeVida from '@/components/cleaners/CleanerHojaDeVida'
+import Avatar from '@/components/ui/Avatar'
 import type { Cleaner } from '@/types/database'
 
 const emptyForm = {
@@ -11,17 +12,6 @@ const emptyForm = {
   emergency_phone: '', emergency_contact_name: '', birth_date: '', address: '', eps: '', arl: '', hire_date: '',
 }
 const inputCls = 'w-full border border-gray-400 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500'
-
-function Avatar({ name, url, size = 'md' }: { name: string; url?: string | null; size?: 'sm' | 'md' }) {
-  const initials = name.split(' ').slice(0, 2).map(s => s[0]).join('').toUpperCase()
-  const cls = size === 'sm' ? 'w-9 h-9 text-xs' : 'w-11 h-11 text-sm'
-  return url ? (
-    // eslint-disable-next-line @next/next/no-img-element
-    <img src={url} alt={name} className={`${cls} rounded-full object-cover border border-gray-200 shrink-0`} />
-  ) : (
-    <div className={`${cls} rounded-full bg-brand-100 text-brand-700 flex items-center justify-center font-bold shrink-0`}>{initials}</div>
-  )
-}
 
 export default function CleanersTable({ cleaners: initial, photoUrls = {} }: { cleaners: Cleaner[]; photoUrls?: Record<string, string> }) {
   const supabase = createClient()

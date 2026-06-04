@@ -1,0 +1,46 @@
+import { NextRequest, NextResponse } from 'next/server'
+import { createAdminClient } from '@/lib/supabase/admin'
+import { requireAdmin } from '@/lib/auth/require-admin'
+import { isSameOrigin } from '@/lib/auth/origin'
+import { isUuid } from '@/lib/validate'
+import { recordAudit } from '@/lib/audit/log'
+
+const ALLOWED: Record<string, string> = { 'image/jpeg': 'jpg', 'image/png': 'png', 'image/webp': 'webp' }
+const MAX_BYTES = 2 * 1024 * 1024
+
+/** Sube/reemplaza la foto de un cliente al bucket privado client-photos. */
+export async function POST(req: NextRequest, { params }: { params: Promise<{ id: string }> }) {
+  if (!isSameOrigin(req)) return NextResponse.json({ error: 'Origen no permitido' }, { status: 403 })
+  const auth = await requireAdmin()
+  if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status })
+
+  const { id } = await params
+  if (!isUuid(id)) return NextResponse.json({ error: 'Identificador inválido' }, { status: 400 })
+
+  let file: File | null = null
+  try {
+    const fd = await req.formData()
+    const f = fd.get('photo')
+    if (f instanceof File) file = f
+  } catch {
+    return NextResponse.json({ error: 'Cuerpo inválido' }, { status: 400 })
+  }
+  if (!file) return NextResponse.json({ error: 'Falta el archivo de foto' }, { status: 400 })
+
+  const ext = ALLOWED[file.type]
+  if (!ext) return NextResponse.json({ error: 'Formato no permitido (usa JPG, PNG o WEBP)' }, { status: 415 })
+  if (file.size > MAX_BYTES) return NextResponse.json({ error: 'La imagen supera 2 MB' }, { status: 413 })
+
+  const admin = createAdminClient()
+  const path = `${id}.${ext}`
+  const { error: upErr } = await admin.storage.from('client-photos').upload(path, file, { upsert: true, contentType: file.type })
+  if (upErr) return NextResponse.json({ error: 'No se pudo subir: ' + upErr.message }, { status: 400 })
+
+  const { error: updErr } = await admin.from('clients').update({ photo_url: path }).eq('id', id)
+  if (updErr) return NextResponse.json({ error: 'No se pudo guardar la referencia: ' + updErr.message }, { status: 400 })
+
+  await recordAudit({ userId: auth.ctx.userId, action: 'client_photo_updated', result: 'success', details: { clientId: id } })
+
+  const { data: signed } = await admin.storage.from('client-photos').createSignedUrl(path, 3600)
+  return NextResponse.json({ path, signedUrl: signed?.signedUrl ?? null })
+}
