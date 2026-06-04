@@ -260,12 +260,21 @@ export default function CleanersTable({ cleaners: initial, photoUrls = {} }: { c
             </div>
             <div className="p-5 grid grid-cols-1 md:grid-cols-2 gap-4">
               <div className="md:col-span-2 flex items-center gap-4">
-                <Avatar name={form.full_name || '?'} url={photoFile ? URL.createObjectURL(photoFile) : (editing ? photoMap[editing.id] : null)} />
+                {/* Avatar clickeable con insignia de cámara */}
+                <label htmlFor="cleaner-photo" className="relative group cursor-pointer shrink-0" title="Subir o cambiar foto">
+                  <Avatar name={form.full_name || '?'} url={photoFile ? URL.createObjectURL(photoFile) : (editing ? photoMap[editing.id] : null)} size="lg" />
+                  <span className="absolute inset-0 rounded-full bg-black/30 opacity-0 group-hover:opacity-100 transition" />
+                  <span className="absolute -bottom-1 -right-1 w-7 h-7 rounded-full bg-brand-600 text-white flex items-center justify-center text-sm border-2 border-white shadow">📷</span>
+                </label>
                 <div>
-                  <label className="block text-sm font-medium text-gray-700 mb-1">Foto</label>
-                  <input type="file" title="Foto del auxiliar" accept="image/png,image/jpeg,image/webp" onChange={e => setPhotoFile(e.target.files?.[0] ?? null)} className="text-sm" />
-                  <p className="text-xs text-gray-500 mt-0.5">JPG, PNG o WEBP (máx 2 MB).</p>
+                  <span className="block text-sm font-medium text-gray-700 mb-1">Foto</span>
+                  <label htmlFor="cleaner-photo" className="inline-flex items-center gap-2 px-3 py-2 rounded-lg border border-brand-300 text-brand-700 text-sm font-medium hover:bg-brand-50 cursor-pointer transition">
+                    📤 {(photoFile || (editing && photoMap[editing.id])) ? 'Cambiar foto' : 'Subir foto'}
+                  </label>
+                  {photoFile && <p className="text-xs text-green-600 mt-1 truncate max-w-[220px]">✓ {photoFile.name}</p>}
+                  <p className="text-xs text-gray-500 mt-1">JPG, PNG o WEBP (máx 2 MB).</p>
                 </div>
+                <input id="cleaner-photo" type="file" title="Foto del auxiliar" accept="image/png,image/jpeg,image/webp" onChange={e => setPhotoFile(e.target.files?.[0] ?? null)} className="sr-only" />
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Nombre completo</label>
