@@ -4,6 +4,7 @@ import { useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useRouter } from 'next/navigation'
 import { resolveLoginEmail } from '@/lib/auth/cleaner-email'
+import Logo from '@/components/ui/Logo'
 
 export default function LoginPage() {
   const router = useRouter()
@@ -33,8 +34,7 @@ export default function LoginPage() {
     <div className="min-h-screen flex items-center justify-center bg-gradient-to-br from-brand-50 to-brand-100">
       <div className="bg-white rounded-2xl shadow-lg p-8 w-full max-w-sm">
         <div className="text-center mb-8">
-          <div className="text-4xl mb-2">🧹</div>
-          <h1 className="text-2xl font-bold text-brand-700">CleanSched</h1>
+          <Logo className="h-24 w-auto mx-auto mb-3" />
           <p className="text-gray-500 text-sm mt-1">Agendamiento y Facturación</p>
         </div>
         <form onSubmit={handleLogin} className="space-y-4">

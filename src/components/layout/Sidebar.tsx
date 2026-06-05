@@ -3,6 +3,7 @@
 import Link from 'next/link'
 import { usePathname } from 'next/navigation'
 import { useEffect, useState } from 'react'
+import Logo from '@/components/ui/Logo'
 import type { UserRole } from '@/types/database'
 
 interface SidebarProps {
@@ -57,7 +58,7 @@ export default function Sidebar({ role, userEmail, pendingNovedades = 0 }: Sideb
       `}>
         <div className="p-4 border-b border-gray-100">
           <div className="flex items-center justify-between">
-            <div className="text-lg font-bold text-brand-700">🧹 CleanSched</div>
+            <Logo className="h-9 w-auto" />
             {/* Cerrar (solo móvil) */}
             <button type="button" onClick={() => setOpen(false)} aria-label="Cerrar menú"
               className="md:hidden p-1 rounded text-gray-600 hover:text-gray-800 text-xl leading-none">✕</button>
