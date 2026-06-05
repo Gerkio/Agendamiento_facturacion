@@ -25,6 +25,11 @@ export default function UsersTable({ users: initial, currentUserId }: { users: U
   const [form, setForm] = useState({ email: '', password: '' })
   const [saving, setSaving] = useState(false)
   const [error, setError] = useState<string | null>(null)
+  // Cambio de contraseña por usuario.
+  const [pwUser, setPwUser] = useState<UserRow | null>(null)
+  const [pwValue, setPwValue] = useState('')
+  const [pwSaving, setPwSaving] = useState(false)
+  const [pwError, setPwError] = useState<string | null>(null)
 
   async function createAdmin() {
     if (!form.email.trim() || form.password.trim().length < 6) { setError('Correo válido y contraseña de mínimo 6 caracteres.'); return }
@@ -56,6 +61,24 @@ export default function UsersTable({ users: initial, currentUserId }: { users: U
     toast('Rol actualizado.', 'success')
   }
 
+  function openPw(u: UserRow) { setPwUser(u); setPwValue(''); setPwError(null) }
+
+  async function changePassword() {
+    if (!pwUser) return
+    if (pwValue.trim().length < 6) { setPwError('Mínimo 6 caracteres.'); return }
+    setPwSaving(true); setPwError(null)
+    const res = await fetch(`/api/users/${pwUser.id}/password`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ password: pwValue.trim() }),
+    })
+    const data = await res.json()
+    setPwSaving(false)
+    if (!res.ok) { setPwError(data.error ?? 'No se pudo cambiar'); return }
+    const self = pwUser.id === currentUserId
+    setUsers(prev => prev.map(x => x.id === pwUser.id ? { ...x, must_change_password: !self } : x))
+    setPwUser(null)
+    toast(self ? 'Tu contraseña fue cambiada.' : `Contraseña de ${pwUser.email} cambiada. Deberá redefinirla al ingresar.`, 'success')
+  }
+
   return (
     <>
       <div className="flex flex-wrap items-center gap-3 mb-4">
@@ -84,6 +107,7 @@ export default function UsersTable({ users: initial, currentUserId }: { users: U
                 <td className="px-5 py-3 text-gray-600">{cleanerName(u) ?? '—'}</td>
                 <td className="px-5 py-3 text-gray-600">{u.must_change_password ? <span className="text-amber-600 text-xs">Debe cambiar contraseña</span> : <span className="text-gray-400 text-xs">OK</span>}</td>
                 <td className="px-5 py-3 text-right whitespace-nowrap">
+                  <button type="button" onClick={() => openPw(u)} className="text-amber-600 hover:underline text-xs font-medium mr-3">Contraseña</button>
                   {u.id === currentUserId
                     ? <span className="text-xs text-gray-400">—</span>
                     : <button type="button" onClick={() => changeRole(u)} disabled={working === u.id} className="text-brand-600 hover:underline text-xs font-medium disabled:opacity-50">
@@ -105,11 +129,14 @@ export default function UsersTable({ users: initial, currentUserId }: { users: U
               </div>
               {cleanerName(u) && <div className="text-sm text-gray-600 mt-0.5">Auxiliar: {cleanerName(u)}</div>}
               {u.must_change_password && <div className="text-xs text-amber-600 mt-0.5">Debe cambiar contraseña</div>}
-              {u.id !== currentUserId && (
-                <button type="button" onClick={() => changeRole(u)} disabled={working === u.id} className="mt-3 w-full py-2 rounded-lg border border-brand-300 text-brand-700 font-medium hover:bg-brand-50 disabled:opacity-50">
-                  {working === u.id ? '…' : (u.role === 'admin' ? 'Pasar a auxiliar' : 'Hacer administrador')}
-                </button>
-              )}
+              <div className="mt-3 flex flex-wrap gap-2">
+                <button type="button" onClick={() => openPw(u)} className="flex-1 min-w-[120px] py-2 rounded-lg border border-amber-300 text-amber-700 font-medium hover:bg-amber-50">Cambiar contraseña</button>
+                {u.id !== currentUserId && (
+                  <button type="button" onClick={() => changeRole(u)} disabled={working === u.id} className="flex-1 min-w-[120px] py-2 rounded-lg border border-brand-300 text-brand-700 font-medium hover:bg-brand-50 disabled:opacity-50">
+                    {working === u.id ? '…' : (u.role === 'admin' ? 'Pasar a auxiliar' : 'Hacer administrador')}
+                  </button>
+                )}
+              </div>
             </div>
           ))}
         </div>
@@ -137,6 +164,35 @@ export default function UsersTable({ users: initial, currentUserId }: { users: U
             <div className="flex justify-end gap-3 p-5 border-t">
               <button type="button" onClick={() => setShowCreate(false)} className="px-4 py-2 rounded-lg text-sm border border-gray-300 hover:bg-gray-50">Cancelar</button>
               <button type="button" onClick={createAdmin} disabled={saving} className="px-4 py-2 rounded-lg text-sm bg-brand-600 text-white hover:bg-brand-700 disabled:opacity-50">{saving ? 'Creando…' : 'Crear'}</button>
+            </div>
+          </div>
+        </div>
+      )}
+
+      {/* Cambiar contraseña */}
+      {pwUser && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-2xl shadow-xl w-full max-w-md">
+            <div className="flex items-center justify-between p-5 border-b">
+              <h2 className="text-lg font-semibold">Cambiar contraseña</h2>
+              <button type="button" onClick={() => setPwUser(null)} aria-label="Cerrar" className="text-gray-600 hover:text-gray-800 text-xl">✕</button>
+            </div>
+            <div className="p-5 space-y-3">
+              <p className="text-sm text-gray-600 break-all">{pwUser.email}{pwUser.id === currentUserId && <span className="text-gray-400"> (tú)</span>}</p>
+              <div>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Nueva contraseña</label>
+                <input type="text" value={pwValue} onChange={e => setPwValue(e.target.value)} placeholder="Mínimo 6 caracteres" className={input} />
+              </div>
+              <p className="text-xs text-gray-500">
+                {pwUser.id === currentUserId
+                  ? 'Quedará como tu contraseña definitiva.'
+                  : 'Será temporal: el usuario deberá redefinirla en su próximo ingreso.'}
+              </p>
+              {pwError && <div className="bg-red-50 border border-red-200 text-red-700 rounded-lg px-3 py-2 text-sm">{pwError}</div>}
+            </div>
+            <div className="flex justify-end gap-3 p-5 border-t">
+              <button type="button" onClick={() => setPwUser(null)} className="px-4 py-2 rounded-lg text-sm border border-gray-300 hover:bg-gray-50">Cancelar</button>
+              <button type="button" onClick={changePassword} disabled={pwSaving} className="px-4 py-2 rounded-lg text-sm bg-brand-600 text-white hover:bg-brand-700 disabled:opacity-50">{pwSaving ? 'Guardando…' : 'Cambiar'}</button>
             </div>
           </div>
         </div>
