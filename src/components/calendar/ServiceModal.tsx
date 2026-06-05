@@ -264,9 +264,27 @@ export default function ServiceModal({ service, isNew, defaultStart, services, c
     if (!service) return
     const ok = await confirm({ title: 'Cancelar servicio', message: '¿Marcar este servicio como cancelado?', confirmLabel: 'Sí, cancelar', danger: true })
     if (!ok) return
+    // P8 · Serie recurrente: ofrecer cancelar toda la serie futura (citas no
+    // completadas de hoy en adelante) o solo esta cita.
+    let whole = false
+    if (service.recurrence_group_id) {
+      whole = await confirm({
+        title: 'Serie recurrente',
+        message: 'Este servicio es parte de una serie. ¿Cancelar también las demás citas futuras de la serie (las no completadas)?',
+        confirmLabel: 'Cancelar toda la serie',
+        cancelLabel: 'Solo esta',
+        danger: true,
+      })
+    }
     setLoading(true)
-    await supabase.from('services').update({ status: 'canceled' }).eq('id', service.id)
-    toast('Servicio cancelado.', 'success')
+    let q = supabase.from('services').update({ status: 'canceled' })
+    q = whole && service.recurrence_group_id
+      ? q.eq('recurrence_group_id', service.recurrence_group_id).neq('status', 'completed').gte('start_time', new Date().toISOString())
+      : q.eq('id', service.id)
+    const { error } = await q
+    setLoading(false)
+    if (error) { toast('No se pudo cancelar: ' + error.message, 'error'); return }
+    toast(whole ? 'Serie cancelada.' : 'Servicio cancelado.', 'success')
     onClose()
     router.refresh()
   }

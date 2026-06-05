@@ -2,7 +2,7 @@
 
 import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
-import { fmtDate } from '@/lib/format'
+import { fmtDate, formatCOP } from '@/lib/format'
 import { novedadTypeLabel } from '@/lib/novedades'
 import { fullAddress } from '@/lib/maps'
 import MapEmbed from '@/components/map/MapEmbed'
@@ -15,10 +15,13 @@ interface Props {
   onClose: () => void
 }
 
+interface PerfStats { completados: number; cancelados: number; ingresos: number; horas: number }
+
 export default function CleanerHojaDeVida({ cleaner, photoUrl, onClose }: Props) {
   const supabase = createClient()
   const [signed, setSigned] = useState<string | null>(photoUrl ?? null)
   const [novedades, setNovedades] = useState<Novedad[]>([])
+  const [stats, setStats] = useState<PerfStats | null>(null)
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
@@ -46,14 +49,41 @@ export default function CleanerHojaDeVida({ cleaner, photoUrl, onClose }: Props)
     return () => { active = false }
   }, [supabase, cleaner.id])
 
+  // Desempeño: agrega los servicios del auxiliar (completados, horas, ingresos
+  // generados y % de cumplimiento). Hace "viva" la hoja de vida.
+  useEffect(() => {
+    let active = true
+    supabase.from('services').select('status, start_time, end_time, price_cop').eq('cleaner_id', cleaner.id)
+      .then(({ data }) => {
+        if (!active) return
+        let completados = 0, cancelados = 0, ingresos = 0, ms = 0
+        for (const r of (data ?? []) as { status: string; start_time: string; end_time: string; price_cop: number }[]) {
+          if (r.status === 'completed') {
+            completados++
+            ingresos += Number(r.price_cop) || 0
+            ms += Math.max(0, new Date(r.end_time).getTime() - new Date(r.start_time).getTime())
+          } else if (r.status === 'canceled') cancelados++
+        }
+        setStats({ completados, cancelados, ingresos, horas: ms / 3_600_000 })
+      })
+    return () => { active = false }
+  }, [supabase, cleaner.id])
+
+  const cumplimiento = stats && stats.completados + stats.cancelados > 0
+    ? Math.round((stats.completados / (stats.completados + stats.cancelados)) * 100)
+    : null
+
   const initials = cleaner.full_name.split(' ').slice(0, 2).map(s => s[0]).join('').toUpperCase()
 
   return (
-    <div onClick={onClose} className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4">
-      <div onClick={e => e.stopPropagation()} className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[92vh] overflow-y-auto">
+    <div onClick={onClose} className="fixed inset-0 bg-black/50 flex items-center justify-center z-[60] p-4 print:static print:bg-white print:p-0 print:block">
+      <div onClick={e => e.stopPropagation()} className="bg-white rounded-2xl shadow-xl w-full max-w-lg max-h-[92vh] overflow-y-auto print:shadow-none print:rounded-none print:max-w-none print:max-h-none print:overflow-visible">
         <div className="flex items-center justify-between p-5 border-b sticky top-0 bg-white z-10">
           <h2 className="text-xl font-bold">Hoja de vida</h2>
-          <button type="button" onClick={onClose} aria-label="Cerrar" className="text-gray-600 hover:text-gray-800 text-xl">✕</button>
+          <div className="flex items-center gap-2 print:hidden">
+            <button type="button" onClick={() => window.print()} className="text-sm px-3 py-1.5 rounded-lg bg-brand-600 text-white hover:bg-brand-700">🖨️ PDF</button>
+            <button type="button" onClick={onClose} aria-label="Cerrar" className="text-gray-600 hover:text-gray-800 text-xl">✕</button>
+          </div>
         </div>
 
         <div className="p-5 space-y-5">
@@ -86,9 +116,20 @@ export default function CleanerHojaDeVida({ cleaner, photoUrl, onClose }: Props)
             <Field label="Fecha de ingreso" value={fmtDate(cleaner.hire_date)} />
           </div>
 
-          {/* Ubicación en el mapa */}
+          {/* Desempeño (KPIs derivados de los servicios) */}
+          <div>
+            <h3 className="text-base font-semibold text-gray-700 mb-2">Desempeño</h3>
+            <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+              <Stat label="Servicios" value={stats ? String(stats.completados) : '…'} sub="completados" />
+              <Stat label="Horas" value={stats ? stats.horas.toFixed(0) : '…'} sub="trabajadas" />
+              <Stat label="Ingresos" value={stats ? formatCOP(stats.ingresos) : '…'} sub="generados" />
+              <Stat label="Cumplimiento" value={cumplimiento != null ? `${cumplimiento}%` : '—'} sub={stats ? `${stats.cancelados} cancelados` : ''} />
+            </div>
+          </div>
+
+          {/* Ubicación en el mapa (no se imprime) */}
           {cleaner.address && (
-            <div>
+            <div className="print:hidden">
               <h3 className="text-base font-semibold text-gray-700 mb-2">Ubicación</h3>
               <MapEmbed mode="place" q={fullAddress(cleaner.address)} title="Ubicación del auxiliar" />
             </div>
@@ -117,7 +158,7 @@ export default function CleanerHojaDeVida({ cleaner, photoUrl, onClose }: Props)
           </div>
         </div>
 
-        <div className="flex justify-end p-5 border-t">
+        <div className="flex justify-end p-5 border-t print:hidden">
           <button type="button" onClick={onClose} className="px-4 py-2.5 rounded-lg text-base border border-gray-400 hover:bg-gray-50">Cerrar</button>
         </div>
       </div>
@@ -130,6 +171,16 @@ function Field({ label, value, full }: { label: string; value?: string | null; f
     <div className={full ? 'col-span-2' : ''}>
       <div className="text-xs text-gray-500">{label}</div>
       <div className="text-gray-800">{value || '—'}</div>
+    </div>
+  )
+}
+
+function Stat({ label, value, sub }: { label: string; value: string; sub: string }) {
+  return (
+    <div className="rounded-lg border border-gray-200 bg-gray-50 p-3 text-center">
+      <div className="text-xs text-gray-500">{label}</div>
+      <div className="text-base font-bold text-gray-800 mt-0.5 truncate" title={value}>{value}</div>
+      <div className="text-xs text-gray-500 mt-0.5">{sub}</div>
     </div>
   )
 }
