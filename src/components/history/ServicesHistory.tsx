@@ -6,6 +6,7 @@ import { useUI } from '@/components/ui/UIProvider'
 import { formatCOP } from '@/lib/format'
 import { serviceCls, serviceLabel, billingCls, billingLabel } from '@/lib/status'
 import { buildCsv, downloadCsv } from '@/lib/csv'
+import { bogotaDayStartISO, bogotaDayEndISO, bogotaToday } from '@/lib/dates'
 import type { Service } from '@/types/database'
 
 interface Props {
@@ -40,13 +41,10 @@ export default function ServicesHistory({ services, cleaners, clients }: Props) 
   const [selected, setSelected] = useState<Set<string>>(new Set())
   const [batchBusy, setBatchBusy] = useState(false)
 
-  // Límites de fecha en hora de Colombia (UTC-5); start_time se guarda en UTC.
-  const toUtcMs = (date: string, endOfDay: boolean) =>
-    new Date(`${date}T${endOfDay ? '23:59:59.999' : '00:00:00'}-05:00`).getTime()
-
   const filtered = useMemo(() => {
-    const fromMs = from ? toUtcMs(from, false) : null
-    const toMs = to ? toUtcMs(to, true) : null
+    // Límites de fecha en hora de Colombia (UTC-5); start_time se guarda en UTC.
+    const fromMs = from ? new Date(bogotaDayStartISO(from)).getTime() : null
+    const toMs = to ? new Date(bogotaDayEndISO(to)).getTime() : null
     const q = search.trim().toLowerCase()
     return rows.filter(s => {
       const t = new Date(s.start_time).getTime()
@@ -105,8 +103,7 @@ export default function ServicesHistory({ services, cleaners, clients }: Props) 
       s.invoices ? billingLabel(s.invoices.billing_status) : '',
       Number(s.price_cop),
     ])
-    const stamp = bogota(new Date().toISOString(), { dateStyle: 'short' }).replace(/\//g, '-')
-    downloadCsv(`historial-servicios-${stamp}`, buildCsv(headers, data))
+    downloadCsv(`historial-servicios-${bogotaToday()}`, buildCsv(headers, data))
   }
 
   // F1: crea un borrador de factura con un único servicio completado y lo vincula.

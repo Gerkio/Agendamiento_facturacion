@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useUI } from '@/components/ui/UIProvider'
 import { formatCOP } from '@/lib/format'
 import { buildCsv, downloadCsv } from '@/lib/csv'
+import { bogotaMonthRange, bogotaDayStartISO, bogotaDayEndISO } from '@/lib/dates'
 
 interface InvoiceRow {
   total_amount: number
@@ -17,14 +18,6 @@ interface ServiceRow {
   price_cop: number
   service_type: string | null
   status: string
-}
-
-// Rango por defecto: del 1.° del mes a hoy, en hora de Colombia (UTC-5).
-function bogotaMonthRange() {
-  const nowBo = new Date(Date.now() - 5 * 3600_000)
-  const pad = (n: number) => String(n).padStart(2, '0')
-  const y = nowBo.getUTCFullYear(), m = pad(nowBo.getUTCMonth() + 1)
-  return { from: `${y}-${m}-01`, to: `${y}-${m}-${pad(nowBo.getUTCDate())}` }
 }
 
 const PROCESO = ['draft', 'processing', 'signed']
@@ -40,12 +33,10 @@ export default function SalesReport() {
   const [services, setServices] = useState<ServiceRow[]>([])
   const [loading, setLoading] = useState(true)
 
-  const toUtc = (d: string, end: boolean) => new Date(`${d}T${end ? '23:59:59.999' : '00:00:00'}-05:00`).toISOString()
-
   async function load(from: string, to: string) {
     if (!from || !to) return
     setLoading(true)
-    const fromISO = toUtc(from, false), toISO = toUtc(to, true)
+    const fromISO = bogotaDayStartISO(from), toISO = bogotaDayEndISO(to)
     const [{ data: inv, error: e1 }, { data: svc, error: e2 }] = await Promise.all([
       supabase.from('invoices').select('total_amount, billing_status, issue_date, client_id, clients(company_name)').gte('issue_date', fromISO).lte('issue_date', toISO),
       supabase.from('services').select('price_cop, service_type, status').neq('status', 'canceled').gte('start_time', fromISO).lte('start_time', toISO),
@@ -115,11 +106,11 @@ export default function SalesReport() {
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 flex flex-wrap items-end gap-3">
         <div>
           <label className="block text-xs font-medium text-gray-600 mb-1">Desde</label>
-          <input type="date" value={range.from} onChange={e => setRange(r => ({ ...r, from: e.target.value }))} className={selectCls} />
+          <input type="date" title="Desde" value={range.from} onChange={e => setRange(r => ({ ...r, from: e.target.value }))} className={selectCls} />
         </div>
         <div>
           <label className="block text-xs font-medium text-gray-600 mb-1">Hasta</label>
-          <input type="date" value={range.to} onChange={e => setRange(r => ({ ...r, to: e.target.value }))} className={selectCls} />
+          <input type="date" title="Hasta" value={range.to} onChange={e => setRange(r => ({ ...r, to: e.target.value }))} className={selectCls} />
         </div>
         <button type="button" onClick={() => load(range.from, range.to)} disabled={loading}
           className="text-sm px-4 py-2 rounded-lg bg-gray-700 text-white font-medium hover:bg-gray-800 disabled:opacity-50">

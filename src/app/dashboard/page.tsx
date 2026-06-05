@@ -2,13 +2,13 @@ import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
 import AgendaMatrix from '@/components/calendar/AgendaMatrix'
 import DashboardKpis from '@/components/dashboard/DashboardKpis'
+import { bogotaNow, bogotaDayOf } from '@/lib/dates'
 import type { Service, ServiceCatalog } from '@/types/database'
 
-// Semana actual (lunes 00:00 Colombia = 05:00 UTC), inicio de mes y día de hoy
-// en hora de Colombia. En función de módulo (no en el render) para no violar
-// react-hooks/purity.
+// Semana actual (lunes 00:00 Colombia = 05:00 UTC), inicio de mes y día de hoy.
+// En función de módulo (no en el render) para no violar react-hooks/purity.
 function currentBogotaPeriods() {
-  const nowBo = new Date(Date.now() - 5 * 3600_000)
+  const nowBo = bogotaNow()
   const weekStart = new Date(Date.UTC(nowBo.getUTCFullYear(), nowBo.getUTCMonth(), nowBo.getUTCDate() - ((nowBo.getUTCDay() + 6) % 7), 5, 0, 0))
   const monthStart = new Date(Date.UTC(nowBo.getUTCFullYear(), nowBo.getUTCMonth(), 1, 5, 0, 0))
   return {
@@ -18,9 +18,6 @@ function currentBogotaPeriods() {
     todayStr: nowBo.toISOString().slice(0, 10),
   }
 }
-
-// Día calendario en Colombia (UTC-5) de un instante ISO, como 'YYYY-MM-DD'.
-const bogotaDay = (iso: string) => new Date(new Date(iso).getTime() - 5 * 3600_000).toISOString().slice(0, 10)
 
 export default async function DashboardPage() {
   const supabase = await createClient()
@@ -83,7 +80,7 @@ export default async function DashboardPage() {
 
   const serviceList = services ?? []
   const ingresosMes = (monthIncome ?? []).reduce((s, r) => s + Number(r.total_amount), 0)
-  const serviciosHoy = serviceList.filter(s => bogotaDay(s.start_time) === todayStr).length
+  const serviciosHoy = serviceList.filter(s => bogotaDayOf(s.start_time) === todayStr).length
 
   return (
     <div className="space-y-6">

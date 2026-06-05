@@ -8,6 +8,7 @@ import { formatCOP } from '@/lib/format'
 import { billingLabel, billingCls, serviceLabel, serviceCls } from '@/lib/status'
 import { computeTax } from '@/lib/dian/tax'
 import { buildCsv, downloadCsv } from '@/lib/csv'
+import { bogotaDayStartISO, bogotaDayEndISO, bogotaToday } from '@/lib/dates'
 import type { Client, Invoice, Service, CreditNote } from '@/types/database'
 import type { EmisorConfig } from '@/lib/dian/emisor-config'
 
@@ -63,11 +64,6 @@ export default function InvoicesView({ clients, invoices: initial, creditNotes: 
     setDocLoading(false)
   }
 
-  // El usuario elige fechas en hora de Colombia (UTC-5); start_time se guarda en UTC.
-  // Convertimos ambos límites con offset explícito para no cortar/colar servicios.
-  const toUtc = (date: string, endOfDay: boolean) =>
-    new Date(`${date}T${endOfDay ? '23:59:59.999' : '00:00:00'}-05:00`).toISOString()
-
   async function searchServices() {
     if (!selectedClient) return
     setLoadingServices(true)
@@ -78,8 +74,8 @@ export default function InvoicesView({ clients, invoices: initial, creditNotes: 
       .is('invoice_id', null)
     // 'all' = cualquier servicio sin facturar que no esté cancelado.
     query = statusFilter === 'all' ? query.neq('status', 'canceled') : query.eq('status', statusFilter)
-    if (dateFrom) query = query.gte('start_time', toUtc(dateFrom, false))
-    if (dateTo) query = query.lte('start_time', toUtc(dateTo, true))
+    if (dateFrom) query = query.gte('start_time', bogotaDayStartISO(dateFrom))
+    if (dateTo) query = query.lte('start_time', bogotaDayEndISO(dateTo))
     // Cota de seguridad: si un cliente acumulara miles de servicios sin facturar,
     // se acotan los resultados y se sugiere filtrar por fechas.
     const { data, error } = await query.order('start_time').limit(200)
@@ -158,8 +154,7 @@ export default function InvoicesView({ clients, invoices: initial, creditNotes: 
         inv.cufe ?? '',
       ]
     })
-    const stamp = new Date().toLocaleDateString('es-CO').replace(/\//g, '-')
-    downloadCsv(`libro-facturas-${stamp}`, buildCsv(headers, rows))
+    downloadCsv(`libro-facturas-${bogotaToday()}`, buildCsv(headers, rows))
   }
 
   async function deleteInvoice(invoice: Invoice) {

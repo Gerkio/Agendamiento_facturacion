@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useUI } from '@/components/ui/UIProvider'
 import { formatCOP, fmtDate } from '@/lib/format'
 import { buildCsv, downloadCsv } from '@/lib/csv'
+import { bogotaToday, bogotaDayStartISO } from '@/lib/dates'
 
 interface Inv {
   id: string
@@ -22,15 +23,6 @@ const dayMs = 86_400_000
 
 const companyOf = (i: Inv) => i.clients?.company_name ?? '—'
 const dueDateOf = (i: Inv) => new Date(new Date(i.issue_date).getTime() + DIAS_CREDITO * dayMs)
-
-// Hoy en hora de Colombia (UTC-5). En funciones de módulo (no en el render) para
-// no violar react-hooks/purity.
-const bogotaNow = () => new Date(Date.now() - 5 * 3600_000)
-function todayBogotaMs() {
-  const n = bogotaNow()
-  return Date.UTC(n.getUTCFullYear(), n.getUTCMonth(), n.getUTCDate(), 5, 0, 0)
-}
-const todayBogotaStr = () => bogotaNow().toISOString().slice(0, 10)
 
 /** F5/P10 · Cartera (cuentas por cobrar): cruza las facturas validadas con sus
  *  abonos (tabla invoice_payments) para mostrar saldo, estado y mora, y registrar
@@ -66,7 +58,7 @@ export default function ReceivablesView() {
   }, [payments])
 
   // Hoy en hora de Colombia (UTC-5), como instante, para calcular mora.
-  const hoyMs = useMemo(() => todayBogotaMs(), [])
+  const hoyMs = useMemo(() => new Date(bogotaDayStartISO(bogotaToday())).getTime(), [])
 
   const filas = useMemo(() => {
     const q = search.trim().toLowerCase()
@@ -95,7 +87,7 @@ export default function ReceivablesView() {
       fmtDate(f.inv.issue_date), fmtDate(dueDateOf(f.inv).toISOString()),
       f.total, f.abonado, f.saldo, f.estado, f.moraDias,
     ])
-    downloadCsv(`cartera-${new Date(hoyMs).toISOString().slice(0, 10)}`, buildCsv(headers, data))
+    downloadCsv(`cartera-${bogotaToday()}`, buildCsv(headers, data))
   }
 
   const estadoBadge: Record<string, string> = {
@@ -191,7 +183,7 @@ function AbonoModal({ invoice, saldo, payments, onClose, onSaved }: {
   const supabase = createClient()
   const { toast } = useUI()
   const [amount, setAmount] = useState(String(saldo))
-  const [paidAt, setPaidAt] = useState(() => todayBogotaStr())
+  const [paidAt, setPaidAt] = useState(bogotaToday)
   const [method, setMethod] = useState(MEDIOS[0])
   const [note, setNote] = useState('')
   const [saving, setSaving] = useState(false)

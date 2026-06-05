@@ -5,6 +5,7 @@ import { createClient } from '@/lib/supabase/client'
 import { useUI } from '@/components/ui/UIProvider'
 import { formatCOP } from '@/lib/format'
 import { buildCsv, downloadCsv } from '@/lib/csv'
+import { bogotaMonthRange, bogotaDayStartISO, bogotaDayEndISO } from '@/lib/dates'
 
 interface SvcRow {
   cleaner_id: string
@@ -16,13 +17,6 @@ interface Rates { manana: number; tarde: number; dia_completo: number; recargo: 
 
 const RATES_KEY = 'amaru.payroll.rates'
 const ZERO: Rates = { manana: 0, tarde: 0, dia_completo: 0, recargo: 0 }
-
-function bogotaMonthRange() {
-  const nowBo = new Date(Date.now() - 5 * 3600_000)
-  const pad = (n: number) => String(n).padStart(2, '0')
-  const y = nowBo.getUTCFullYear(), m = pad(nowBo.getUTCMonth() + 1)
-  return { from: `${y}-${m}-01`, to: `${y}-${m}-${pad(nowBo.getUTCDate())}` }
-}
 
 /** P2 · Liquidación por turno: el admin fija las tarifas (mañana/tarde/día completo
  *  + recargo dominical), persistidas en el navegador, y el sistema cuenta los
@@ -49,8 +43,6 @@ export default function PayrollReport() {
     })
   }
 
-  const toUtc = (d: string, end: boolean) => new Date(`${d}T${end ? '23:59:59.999' : '00:00:00'}-05:00`).toISOString()
-
   async function load(from: string, to: string) {
     if (!from || !to) return
     setLoading(true)
@@ -58,8 +50,8 @@ export default function PayrollReport() {
       .from('services')
       .select('cleaner_id, turno, recargo_dominical, cleaners(full_name)')
       .eq('status', 'completed')
-      .gte('start_time', toUtc(from, false))
-      .lte('start_time', toUtc(to, true))
+      .gte('start_time', bogotaDayStartISO(from))
+      .lte('start_time', bogotaDayEndISO(to))
     if (error) toast('Error cargando servicios: ' + error.message, 'error')
     setRows((data as SvcRow[]) ?? [])
     setLoading(false)
@@ -112,11 +104,11 @@ export default function PayrollReport() {
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm p-4 flex flex-wrap items-end gap-3">
         <div>
           <label className="block text-xs font-medium text-gray-600 mb-1">Desde</label>
-          <input type="date" value={range.from} onChange={e => setRange(r => ({ ...r, from: e.target.value }))} className={inputCls} />
+          <input type="date" title="Desde" value={range.from} onChange={e => setRange(r => ({ ...r, from: e.target.value }))} className={inputCls} />
         </div>
         <div>
           <label className="block text-xs font-medium text-gray-600 mb-1">Hasta</label>
-          <input type="date" value={range.to} onChange={e => setRange(r => ({ ...r, to: e.target.value }))} className={inputCls} />
+          <input type="date" title="Hasta" value={range.to} onChange={e => setRange(r => ({ ...r, to: e.target.value }))} className={inputCls} />
         </div>
         <button type="button" onClick={() => load(range.from, range.to)} disabled={loading}
           className="text-sm px-4 py-2 rounded-lg bg-gray-700 text-white font-medium hover:bg-gray-800 disabled:opacity-50">
