@@ -47,6 +47,34 @@ export function buildAuxiliarAppointmentMessage(d: AppointmentMessageData): stri
   return lines.join('\n')
 }
 
+export interface ClientReminderData {
+  clientName: string
+  fecha: string
+  entrada: string
+  salida: string
+  serviceType?: string | null
+  cleanerName?: string | null
+  addressFull?: string | null
+}
+
+/** Mensaje pre-formateado para el CLIENTE recordándole su próxima cita de aseo
+ *  (fecha, horario, servicio, auxiliar y dirección). Complementa el mensaje al
+ *  auxiliar: el mismo agendamiento, visto desde el lado del cliente. */
+export function buildClientReminderMessage(d: ClientReminderData): string {
+  const saludo = d.clientName ? `Hola ${d.clientName}, ` : ''
+  const lines = [
+    `${saludo}te recordamos tu servicio de aseo con AMARU:`,
+    '',
+    `📅 *Fecha:* ${d.fecha}`,
+    `🕐 *Horario:* ${d.entrada} – ${d.salida}`,
+  ]
+  if (d.serviceType) lines.push(`🧹 *Servicio:* ${d.serviceType}`)
+  if (d.cleanerName) lines.push(`🧑‍🔧 *Auxiliar:* ${d.cleanerName}`)
+  if (d.addressFull) lines.push(`📍 *Dirección:* ${d.addressFull}`)
+  lines.push('', '¡Gracias por confiar en AMARU!')
+  return lines.join('\n')
+}
+
 export interface InvoiceMessageData {
   clientName: string
   invoiceNumber: string

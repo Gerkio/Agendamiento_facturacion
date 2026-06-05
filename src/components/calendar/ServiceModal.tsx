@@ -9,13 +9,13 @@ import MultiDatePicker from './MultiDatePicker'
 import MapEmbed from '@/components/map/MapEmbed'
 import WhatsAppButton from '@/components/whatsapp/WhatsAppButton'
 import { fullAddress, mapsDirLink } from '@/lib/maps'
-import { buildAuxiliarAppointmentMessage } from '@/lib/whatsapp'
+import { buildAuxiliarAppointmentMessage, buildClientReminderMessage } from '@/lib/whatsapp'
 import { formatCOP, fmtDate } from '@/lib/format'
 import {
   SEGMENTS, hhmm, scheduleLabel, addMinutesToTime, formatDuration,
   TURNOS, turnoLabel, tipoToTurno, SERVICE_CLASSES, FORMA_PAGO_OPTIONS,
 } from '@/lib/service-catalog'
-import type { Service, Client, Cleaner, ServiceCatalog } from '@/types/database'
+import type { Service, Client, Cleaner, ServiceCatalog, Novedad } from '@/types/database'
 
 interface Props {
   service: Service | null
@@ -35,6 +35,9 @@ interface Props {
 }
 
 const input ='w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500'
+
+/** Tipos de novedad que implican ausencia del auxiliar (para el aviso al agendar). */
+const NOVEDAD_LABEL: Record<string, string> = { permiso: 'permiso', incapacidad: 'incapacidad', vacaciones: 'vacaciones', otro: 'novedad' }
 
 const pad = (n: number) => String(n).padStart(2, '0')
 const dateOf = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
@@ -77,6 +80,9 @@ export default function ServiceModal({ service, isNew, defaultStart, services, c
   const [updatingReq, setUpdatingReq] = useState(false)
   // Días adicionales (además de la Fecha base) para agendar el mismo servicio.
   const [extraDates, setExtraDates] = useState<string[]>([])
+  // P1 · Disponibilidad: novedades de ausencia (permiso/incapacidad/vacaciones)
+  // del auxiliar elegido, para avisar si la fecha cae dentro de una ausencia.
+  const [cleanerNovedades, setCleanerNovedades] = useState<Novedad[]>([])
 
   const selectedClient = clients.find(c => c.id === form.client_id)
   const selectedCleaner = cleaners.find(c => c.id === form.cleaner_id)
@@ -91,6 +97,28 @@ export default function ServiceModal({ service, isNew, defaultStart, services, c
     window.addEventListener('keydown', onKey)
     return () => window.removeEventListener('keydown', onKey)
   }, [onClose])
+
+  // Carga las novedades de ausencia del auxiliar al cambiarlo (P1).
+  useEffect(() => {
+    if (!form.cleaner_id) { setCleanerNovedades([]); return }
+    let active = true
+    supabase
+      .from('novedades')
+      .select('id, type, subject, start_date, due_date')
+      .eq('cleaner_id', form.cleaner_id)
+      .in('type', ['permiso', 'incapacidad', 'vacaciones'])
+      .then(({ data }) => { if (active) setCleanerNovedades((data as Novedad[]) ?? []) })
+    return () => { active = false }
+  }, [form.cleaner_id, supabase])
+
+  // Novedad que cubre la fecha base elegida (si la hay).
+  const unavailable = useMemo(() => {
+    if (!form.cleaner_id || !form.date) return null
+    return cleanerNovedades.find(n => {
+      const to = n.due_date || n.start_date
+      return n.start_date <= form.date && form.date <= to
+    }) ?? null
+  }, [cleanerNovedades, form.cleaner_id, form.date])
 
   const set = (k: keyof typeof form, v: string | boolean) => setForm(f => ({ ...f, [k]: v }))
 
@@ -467,6 +495,26 @@ export default function ServiceModal({ service, isNew, defaultStart, services, c
               ) : selectedCleaner && (
                 <p className="text-xs text-amber-600 mt-3">El auxiliar no tiene teléfono registrado para WhatsApp.</p>
               )}
+              {selectedClient.phone ? (
+                <div className="mt-3 pt-3 border-t border-gray-200">
+                  <WhatsAppButton
+                    phone={selectedClient.phone}
+                    message={buildClientReminderMessage({
+                      clientName: selectedClient.company_name,
+                      fecha: fmtDate(form.date),
+                      entrada: form.entrada,
+                      salida: form.salida,
+                      serviceType: form.service_type,
+                      cleanerName: selectedCleaner?.full_name,
+                      addressFull: fullAddress(selectedClient.address, selectedClient.city_code),
+                    })}
+                    label="Recordar la cita al cliente (WhatsApp)"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Abre WhatsApp Web con el recordatorio listo para el cliente.</p>
+                </div>
+              ) : (
+                <p className="text-xs text-amber-600 mt-3">El cliente no tiene teléfono registrado para WhatsApp.</p>
+              )}
             </div>
           )}
 
@@ -488,6 +536,16 @@ export default function ServiceModal({ service, isNew, defaultStart, services, c
               </button>
             )}
           </div>
+
+          {unavailable && (
+            <div className="md:col-span-2 bg-amber-50 border border-amber-300 text-amber-800 rounded-lg px-3 py-2 text-sm flex items-start gap-2">
+              <span>🚫</span>
+              <span>
+                Este auxiliar tiene una novedad de <strong>{NOVEDAD_LABEL[unavailable.type] ?? 'novedad'}</strong> que cubre el <strong>{fmtDate(form.date)}</strong>
+                {unavailable.due_date && unavailable.due_date !== unavailable.start_date ? ` (del ${fmtDate(unavailable.start_date)} al ${fmtDate(unavailable.due_date)})` : ''}: «{unavailable.subject}». Puedes agendar igual, pero confirma su disponibilidad.
+              </span>
+            </div>
+          )}
 
           {conflict && (
             <div className="md:col-span-2 bg-red-50 border border-red-200 text-red-700 rounded-lg px-3 py-2 text-sm flex items-start gap-2">

@@ -16,6 +16,7 @@ const input = 'w-full border border-gray-400 rounded-lg px-3 py-2 text-sm focus:
 
 const TABS = [
   { id: 'datos', label: 'Datos' },
+  { id: 'cuenta', label: 'Estado de cuenta' },
   { id: 'direcciones', label: 'Direcciones' },
   { id: 'servicios', label: 'Histórico de Servicios' },
   { id: 'pagos', label: 'Últimos Pagos' },
@@ -28,6 +29,7 @@ interface Props {
   servicesCount: number
   invoicesCount: number
   /** Pestañas de solo-lectura renderizadas en el servidor. */
+  cuentaTab: React.ReactNode
   serviciosTab: React.ReactNode
   pagosTab: React.ReactNode
   photoUrl: string | null
@@ -35,7 +37,7 @@ interface Props {
 
 const emptyAddr = { label: '', address: '', city_code: '11001', indicaciones: '', is_primary: false }
 
-export default function ClientDetail({ client, addresses: initialAddr, servicesCount, invoicesCount, serviciosTab, pagosTab, photoUrl }: Props) {
+export default function ClientDetail({ client, addresses: initialAddr, servicesCount, invoicesCount, cuentaTab, serviciosTab, pagosTab, photoUrl }: Props) {
   const supabase = createClient()
   const router = useRouter()
   const { toast, confirm } = useUI()
@@ -296,6 +298,9 @@ export default function ClientDetail({ client, addresses: initialAddr, servicesC
           )}
         </div>
       )}
+
+      {/* ── ESTADO DE CUENTA (server) ── */}
+      {tab === 'cuenta' && cuentaTab}
 
       {/* ── HISTÓRICO DE SERVICIOS (server) ── */}
       {tab === 'servicios' && serviciosTab}
