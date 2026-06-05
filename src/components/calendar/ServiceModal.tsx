@@ -6,6 +6,8 @@ import { createClient } from '@/lib/supabase/client'
 import { useUI } from '@/components/ui/UIProvider'
 import CleanerHojaDeVida from '@/components/cleaners/CleanerHojaDeVida'
 import MultiDatePicker from './MultiDatePicker'
+import MapEmbed from '@/components/map/MapEmbed'
+import { fullAddress } from '@/lib/maps'
 import { formatCOP } from '@/lib/format'
 import {
   SEGMENTS, hhmm, scheduleLabel, addMinutesToTime, formatDuration,
@@ -69,6 +71,7 @@ export default function ServiceModal({ service, isNew, defaultStart, services, c
   const [showClientInfo, setShowClientInfo] = useState(false)
   const [showResumen, setShowResumen] = useState(false)
   const [showDatePicker, setShowDatePicker] = useState(false)
+  const [showRoute, setShowRoute] = useState(false)
   const [updatingReq, setUpdatingReq] = useState(false)
   // Días adicionales (además de la Fecha base) para agendar el mismo servicio.
   const [extraDates, setExtraDates] = useState<string[]>([])
@@ -417,11 +420,29 @@ export default function ServiceModal({ service, isNew, defaultStart, services, c
             </div>
           )}
 
-          {/* Dirección + indicaciones del cliente (solo lectura) */}
+          {/* Dirección + indicaciones del cliente (solo lectura) + ruta */}
           {selectedClient && (
             <div className="md:col-span-2 bg-gray-50 border border-gray-200 rounded-lg p-3 text-sm">
               <div><span className="text-gray-500">📍 Dirección:</span> <span className="text-gray-800">{selectedClient.address || '—'}</span></div>
               {selectedClient.indicaciones && <div className="mt-1 text-brand-700">🧭 {selectedClient.indicaciones}</div>}
+              {selectedClient.address && (
+                <div className="mt-2">
+                  <button type="button" onClick={() => setShowRoute(v => !v)} className="text-xs px-2 py-1 rounded border border-brand-300 text-brand-700 hover:bg-brand-50">
+                    {showRoute ? 'Ocultar ruta' : '🚌 Ver ruta (transporte público)'}
+                  </button>
+                  {showRoute && (
+                    <div className="mt-2">
+                      <MapEmbed
+                        mode="directions"
+                        origin={fullAddress(selectedCleaner?.address)}
+                        destination={fullAddress(selectedClient.address, selectedClient.city_code)}
+                        title="Ruta auxiliar → cliente"
+                      />
+                      {!selectedCleaner?.address && <p className="text-xs text-amber-600 mt-1">El auxiliar no tiene dirección registrada: se muestra solo la ubicación del cliente.</p>}
+                    </div>
+                  )}
+                </div>
+              )}
             </div>
           )}
 

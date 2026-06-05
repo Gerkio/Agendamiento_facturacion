@@ -5,6 +5,8 @@ import { createClient } from '@/lib/supabase/client'
 import { useUI } from '@/components/ui/UIProvider'
 import CleanerHojaDeVida from '@/components/cleaners/CleanerHojaDeVida'
 import Avatar from '@/components/ui/Avatar'
+import MapEmbed from '@/components/map/MapEmbed'
+import { fullAddress } from '@/lib/maps'
 import type { Cleaner } from '@/types/database'
 
 const emptyForm = {
@@ -31,6 +33,7 @@ export default function CleanersTable({ cleaners: initial, photoUrls = {} }: { c
   const [showInactive, setShowInactive] = useState(false)
   const [view, setView] = useState<'resumida' | 'detallada'>('resumida')
   const [hoja, setHoja] = useState<Cleaner | null>(null)
+  const [mapQuery, setMapQuery] = useState('')
 
   const total = cleaners.length
   const activos = useMemo(() => cleaners.filter(c => c.is_active).length, [cleaners])
@@ -46,9 +49,10 @@ export default function CleanersTable({ cleaners: initial, photoUrls = {} }: { c
     })
   }, [cleaners, search, showInactive])
 
-  function openNew() { setEditing(null); setForm({ ...emptyForm }); setPhotoFile(null); setError(null); setShowModal(true) }
+  function openNew() { setEditing(null); setForm({ ...emptyForm }); setPhotoFile(null); setError(null); setMapQuery(''); setShowModal(true) }
   function openEdit(c: Cleaner) {
     setEditing(c)
+    setMapQuery('')
     setForm({
       full_name: c.full_name, document_id: c.document_id, phone: c.phone ?? '', is_active: c.is_active,
       emergency_phone: c.emergency_phone ?? '', emergency_contact_name: c.emergency_contact_name ?? '',
@@ -310,6 +314,13 @@ export default function CleanersTable({ cleaners: initial, photoUrls = {} }: { c
               <div className="md:col-span-2">
                 <label className="block text-sm font-medium text-gray-700 mb-1">Dirección</label>
                 <input type="text" value={form.address} onChange={e => f('address', e.target.value)} placeholder="Cra 50 # 10-20" className={inputCls} />
+                <div className="mt-2">
+                  <button type="button" disabled={!form.address.trim()} onClick={() => setMapQuery(fullAddress(form.address))}
+                    className="text-sm px-3 py-1.5 rounded-lg border border-brand-300 text-brand-700 hover:bg-brand-50 disabled:opacity-50">
+                    🔍 Ver dirección en el mapa
+                  </button>
+                  {mapQuery && <div className="mt-2"><MapEmbed mode="place" q={mapQuery} title="Ubicación del auxiliar" /></div>}
+                </div>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">EPS</label>

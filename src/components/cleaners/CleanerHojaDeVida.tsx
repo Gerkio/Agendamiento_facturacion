@@ -4,6 +4,8 @@ import { useEffect, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { fmtDate } from '@/lib/format'
 import { novedadTypeLabel } from '@/lib/novedades'
+import { fullAddress } from '@/lib/maps'
+import MapEmbed from '@/components/map/MapEmbed'
 import type { Cleaner, Novedad } from '@/types/database'
 
 interface Props {
@@ -83,6 +85,14 @@ export default function CleanerHojaDeVida({ cleaner, photoUrl, onClose }: Props)
             <Field label="ARL" value={cleaner.arl} />
             <Field label="Fecha de ingreso" value={fmtDate(cleaner.hire_date)} />
           </div>
+
+          {/* Ubicación en el mapa */}
+          {cleaner.address && (
+            <div>
+              <h3 className="text-base font-semibold text-gray-700 mb-2">Ubicación</h3>
+              <MapEmbed mode="place" q={fullAddress(cleaner.address)} title="Ubicación del auxiliar" />
+            </div>
+          )}
 
           {/* Novedades recientes */}
           <div>

@@ -77,7 +77,7 @@ export default function AgendaMatrix({ cleaners, clients, catalog = [], isAdmin,
     setLoading(true)
     let q = supabase
       .from('services')
-      .select('*, clients(company_name, address, phone, indicaciones, forma_pago), cleaners(full_name)')
+      .select('*, clients(company_name, address, phone, indicaciones, forma_pago, city_code), cleaners(full_name, address)')
       .neq('status', 'canceled')
       .gte('start_time', weekStart.toISOString())
       .lt('start_time', addDays(weekStart, 7).toISOString())

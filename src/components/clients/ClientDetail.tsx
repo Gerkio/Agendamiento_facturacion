@@ -7,6 +7,8 @@ import { useUI } from '@/components/ui/UIProvider'
 import Avatar from '@/components/ui/Avatar'
 import { calcularDV } from '@/lib/dian/dv'
 import { cityName } from '@/lib/dian/cities'
+import { fullAddress } from '@/lib/maps'
+import MapEmbed from '@/components/map/MapEmbed'
 import { CITY_OPTIONS, TAX_SCHEMES, FISCAL_REGIMENS, CUSTOMER_TYPES, ORIGENES, NATURALEZAS, deriveCompanyName } from '@/lib/clients'
 import type { Client, ClientAddress } from '@/types/database'
 
@@ -42,6 +44,7 @@ export default function ClientDetail({ client, addresses: initialAddr, servicesC
   const [photoFile, setPhotoFile] = useState<File | null>(null)
   const [saving, setSaving] = useState(false)
   const [addresses, setAddresses] = useState(initialAddr)
+  const [mapQuery, setMapQuery] = useState('')
 
   const [form, setForm] = useState({
     naturaleza: client.naturaleza ?? 'juridica',
@@ -217,6 +220,14 @@ export default function ClientDetail({ client, addresses: initialAddr, servicesC
                 <option value="1">Activo</option><option value="0">Inactivo</option>
               </select>
             </Field>
+
+            <div className="md:col-span-2">
+              <button type="button" disabled={!form.address.trim()} onClick={() => setMapQuery(fullAddress(form.address, form.city_code))}
+                className="text-sm px-3 py-2 rounded-lg border border-brand-300 text-brand-700 hover:bg-brand-50 disabled:opacity-50">
+                🔍 Ver dirección en el mapa
+              </button>
+              {mapQuery && <div className="mt-2"><MapEmbed mode="place" q={mapQuery} title="Ubicación del cliente" /></div>}
+            </div>
 
             <Field label="Teléfono 1"><input title="Teléfono 1" value={form.phone} onChange={e => set('phone', e.target.value)} className={input} /></Field>
             <Field label="Teléfono 2"><input title="Teléfono 2" value={form.phone2} onChange={e => set('phone2', e.target.value)} className={input} /></Field>

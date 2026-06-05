@@ -16,6 +16,9 @@ const csp = [
   "font-src 'self' data:",
   // Supabase (Auth/DB/Realtime) + llamadas propias. En dev, websockets de HMR.
   `connect-src 'self' https://*.supabase.co wss://*.supabase.co${isProd ? '' : ' ws: http://localhost:*'}`,
+  // Mapas: iframe de la Google Maps Embed API (sus peticiones internas viven
+  // dentro del iframe de Google, no en este documento).
+  "frame-src https://www.google.com",
   "frame-ancestors 'none'",
   "base-uri 'self'",
   "form-action 'self'",

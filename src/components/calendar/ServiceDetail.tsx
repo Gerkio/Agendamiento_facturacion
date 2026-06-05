@@ -2,7 +2,9 @@
 
 import { useEffect } from 'react'
 import { turnoLabel } from '@/lib/service-catalog'
-import type { Service, Client } from '@/types/database'
+import { fullAddress } from '@/lib/maps'
+import MapEmbed from '@/components/map/MapEmbed'
+import type { Service, Client, Cleaner } from '@/types/database'
 
 /** Detalle de solo lectura de un servicio, pensado para el aseador (incluye indicaciones de llegada). */
 export default function ServiceDetail({ service, onClose }: { service: Service; onClose: () => void }) {
@@ -13,6 +15,7 @@ export default function ServiceDetail({ service, onClose }: { service: Service; 
   }, [onClose])
 
   const client = service.clients as Partial<Client> | undefined
+  const cleaner = service.cleaners as Partial<Cleaner> | undefined
   const start = new Date(service.start_time)
   const end = new Date(service.end_time)
   const fmtTime = (d: Date) => d.toLocaleTimeString('es-CO', { hour: '2-digit', minute: '2-digit', hour12: false })
@@ -83,14 +86,17 @@ export default function ServiceDetail({ service, onClose }: { service: Service; 
               : <p className="text-gray-600 italic">Sin indicaciones registradas para este cliente.</p>}
           </div>
 
+          {/* Cómo llegar: ruta en transporte público desde tu casa al cliente. */}
           {client?.address && (
-            <a
-              href={`https://www.google.com/maps/search/?api=1&query=${encodeURIComponent(client.address + ', Colombia')}`}
-              target="_blank" rel="noopener noreferrer"
-              className="block text-center bg-brand-600 text-white py-2.5 rounded-lg hover:bg-brand-700 transition font-medium"
-            >
-              📍 Abrir en Google Maps
-            </a>
+            <div>
+              <div className="text-xs font-semibold text-gray-700 mb-1">🚌 Cómo llegar (transporte público)</div>
+              <MapEmbed
+                mode="directions"
+                origin={fullAddress(cleaner?.address)}
+                destination={fullAddress(client.address, client.city_code)}
+                title="Ruta al cliente"
+              />
+            </div>
           )}
         </div>
       </div>
