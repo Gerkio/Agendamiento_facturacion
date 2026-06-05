@@ -4,7 +4,9 @@ import { requireAdmin } from '@/lib/auth/require-admin'
 import { isSameOrigin } from '@/lib/auth/origin'
 import { isUuid } from '@/lib/validate'
 import { recordAudit } from '@/lib/audit/log'
-import { deriveCompanyName, nameIsValid } from '@/lib/clients'
+import { deriveCompanyName, nameIsValid, CITY_OPTIONS, TAX_SCHEMES, FISCAL_REGIMENS } from '@/lib/clients'
+
+const EMAIL_RE = /^[^@\s<>"']+@[^@\s<>"']+\.[^@\s<>"']+$/
 
 /** Actualiza un cliente. Deriva company_name (razón social) de forma autoritativa
  *  para no romper la facturación DIAN. */
@@ -35,6 +37,16 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     if (!str(k)) return NextResponse.json({ error: `Falta ${label}.` }, { status: 400 })
   }
 
+  // Validación server-side de formato/catálogo (defensa en profundidad; el XML
+  // DIAN escapa estos campos, esto evita además persistir datos inválidos).
+  if (!EMAIL_RE.test(str('email'))) return NextResponse.json({ error: 'Correo inválido.' }, { status: 400 })
+  if (!/^\d$/.test(str('dv'))) return NextResponse.json({ error: 'DV inválido (debe ser un dígito).' }, { status: 400 })
+  if (!CITY_OPTIONS.some(c => c.code === str('city_code'))) return NextResponse.json({ error: 'Ciudad inválida.' }, { status: 400 })
+  const taxScheme = str('tax_scheme') || '01'
+  if (!TAX_SCHEMES.some(t => t.value === taxScheme)) return NextResponse.json({ error: 'Esquema tributario inválido.' }, { status: 400 })
+  const fiscalRegimen = str('fiscal_regimen') || 'R-99-PN'
+  if (!FISCAL_REGIMENS.some(r => r.value === fiscalRegimen)) return NextResponse.json({ error: 'Régimen fiscal inválido.' }, { status: 400 })
+
   const payload = {
     company_name,
     naturaleza,
@@ -54,7 +66,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   const { data, error } = await admin.from('clients').update(payload).eq('id', id).select().single()
   if (error) {
     const dup = error.message.toLowerCase().includes('duplicate') || error.message.includes('nit_cedula')
-    return NextResponse.json({ error: dup ? 'Ya existe otro cliente con ese NIT/Cédula.' : error.message }, { status: 400 })
+    if (!dup) console.error('[clients PATCH]', error.message)
+    return NextResponse.json({ error: dup ? 'Ya existe otro cliente con ese NIT/Cédula.' : 'No se pudo actualizar el cliente.' }, { status: 400 })
   }
 
   await recordAudit({ userId: auth.ctx.userId, action: 'client_updated', result: 'success', details: { clientId: id } })

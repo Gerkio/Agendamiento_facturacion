@@ -4,6 +4,7 @@ import { requireAdmin } from '@/lib/auth/require-admin'
 import { isSameOrigin } from '@/lib/auth/origin'
 import { isUuid } from '@/lib/validate'
 import { recordAudit } from '@/lib/audit/log'
+import { validatePassword } from '@/lib/auth/password'
 
 /**
  * Cambia la contraseña de un usuario desde la pestaña Usuarios (solo admin).
@@ -21,7 +22,8 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
 
   const { password } = (await req.json()) as { password?: string }
   const pass = password?.trim() ?? ''
-  if (pass.length < 6) return NextResponse.json({ error: 'La contraseña debe tener al menos 6 caracteres' }, { status: 400 })
+  const weak = validatePassword(pass)
+  if (weak) return NextResponse.json({ error: weak }, { status: 400 })
 
   const admin = createAdminClient()
   const { data: target } = await admin.from('user_profiles').select('id').eq('id', id).single()
@@ -34,7 +36,7 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     password: pass,
     app_metadata: { must_change_password: forceChange },
   })
-  if (error) return NextResponse.json({ error: 'No se pudo cambiar la contraseña: ' + error.message }, { status: 400 })
+  if (error) { console.error('[user password PATCH]', error.message); return NextResponse.json({ error: 'No se pudo cambiar la contraseña.' }, { status: 400 }) }
 
   await admin.from('user_profiles').update({ must_change_password: forceChange }).eq('id', id)
   await recordAudit({ userId: auth.ctx.userId, action: 'password_reset', result: 'success', details: { targetId: id, self: isSelf } })

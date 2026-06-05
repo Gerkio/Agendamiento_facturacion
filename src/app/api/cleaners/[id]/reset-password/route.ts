@@ -4,6 +4,8 @@ import { requireAdmin } from '@/lib/auth/require-admin'
 import { recordAudit } from '@/lib/audit/log'
 import { isSameOrigin } from '@/lib/auth/origin'
 import { isUuid } from '@/lib/validate'
+import { randomBytes } from 'crypto'
+import { validatePassword } from '@/lib/auth/password'
 
 /**
  * Resetea la contraseña de un limpiador.
@@ -24,8 +26,9 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
   } catch {
     // sin cuerpo → reset a la cédula
   }
-  if (customPassword && customPassword.length < 4) {
-    return NextResponse.json({ error: 'La contraseña temporal debe tener al menos 4 caracteres' }, { status: 400 })
+  if (customPassword) {
+    const err = validatePassword(customPassword)
+    if (err) return NextResponse.json({ error: err }, { status: 400 })
   }
 
   const admin = createAdminClient()
@@ -50,7 +53,8 @@ export async function POST(req: NextRequest, { params }: { params: Promise<{ id:
     return NextResponse.json({ error: 'Este limpiador no tiene un usuario vinculado' }, { status: 404 })
   }
 
-  const newPassword = customPassword ?? cleaner.document_id
+  // Por defecto, una contraseña temporal ALEATORIA (no la cédula, que es pública).
+  const newPassword = customPassword ?? randomBytes(9).toString('base64url')
 
   const { error: updErr } = await admin.auth.admin.updateUserById(profile.id, {
     password: newPassword,

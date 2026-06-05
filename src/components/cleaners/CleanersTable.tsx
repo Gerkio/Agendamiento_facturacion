@@ -101,7 +101,7 @@ export default function CleanersTable({ cleaners: initial, photoUrls = {} }: { c
       await uploadPhoto(data.cleaner.id)
       setCleaners(prev => [...prev, { ...data.cleaner, ...extra }])
       setShowModal(false); setLoading(false)
-      setNotice(`Auxiliar creado. Usuario: ${data.username} · contraseña inicial: ${data.username} (deberá cambiarla al ingresar).`)
+      setNotice(`Auxiliar creado. Usuario: ${data.username} · contraseña temporal: ${data.tempPassword} (entrégasela; deberá cambiarla al ingresar).`)
     }
   }
 
@@ -118,7 +118,7 @@ export default function CleanersTable({ cleaners: initial, photoUrls = {} }: { c
   }
 
   async function handleResetPassword(c: Cleaner) {
-    const ok = await confirm({ title: 'Resetear contraseña', message: `¿Resetear la contraseña de ${c.full_name} a su cédula (${c.document_id})?\nDeberá cambiarla en el próximo ingreso.`, confirmLabel: 'Resetear' })
+    const ok = await confirm({ title: 'Resetear contraseña', message: `¿Generar una contraseña temporal nueva para ${c.full_name}? Se mostrará una sola vez y deberá cambiarla en el próximo ingreso.`, confirmLabel: 'Resetear' })
     if (!ok) return
     setResetting(c.id); setNotice(null)
     const res = await fetch(`/api/cleaners/${c.id}/reset-password`, { method: 'POST' })

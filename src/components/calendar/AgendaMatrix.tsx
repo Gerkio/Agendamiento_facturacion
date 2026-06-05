@@ -75,15 +75,20 @@ export default function AgendaMatrix({ cleaners, clients, catalog = [], isAdmin,
 
   const fetchWeek = useCallback(async () => {
     setLoading(true)
+    // El auxiliar NO debe recibir 'obs_internas' (notas internas de administración).
+    // Se excluye de su payload con una lista de columnas explícita; el admin trae '*'.
+    const svcCols = isAdmin
+      ? '*'
+      : 'id, client_id, cleaner_id, start_time, end_time, status, is_recurring, recurrence_group_id, invoice_id, price_cop, service_type, obs_auxiliar, catalog_id, service_class, turno, recargo_dominical, forma_pago, created_at'
     let q = supabase
       .from('services')
-      .select('*, clients(company_name, address, phone, indicaciones, forma_pago, city_code), cleaners(full_name, address)')
+      .select(`${svcCols}, clients(company_name, address, phone, indicaciones, forma_pago, city_code), cleaners(full_name, address)`)
       .neq('status', 'canceled')
       .gte('start_time', weekStart.toISOString())
       .lt('start_time', addDays(weekStart, 7).toISOString())
     if (!isAdmin && cleanerId) q = q.eq('cleaner_id', cleanerId)
-    const { data } = await q
-    setServices((data ?? []) as Service[])
+    const { data } = await q.returns<Service[]>()
+    setServices(data ?? [])
     setLoading(false)
   }, [supabase, weekStart, isAdmin, cleanerId])
 

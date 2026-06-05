@@ -4,6 +4,7 @@ import { requireAdmin } from '@/lib/auth/require-admin'
 import { isSameOrigin } from '@/lib/auth/origin'
 import { CLEANER_EMAIL_DOMAIN } from '@/lib/auth/cleaner-email'
 import { recordAudit } from '@/lib/audit/log'
+import { validatePassword } from '@/lib/auth/password'
 
 /**
  * Crea un nuevo administrador (correo + contraseña temporal). El usuario nace
@@ -19,7 +20,8 @@ export async function POST(req: NextRequest) {
   const pass = password?.trim() ?? ''
   if (!mail || !mail.includes('@')) return NextResponse.json({ error: 'Correo inválido' }, { status: 400 })
   if (mail.endsWith('@' + CLEANER_EMAIL_DOMAIN)) return NextResponse.json({ error: 'Ese dominio está reservado para auxiliares' }, { status: 400 })
-  if (pass.length < 6) return NextResponse.json({ error: 'La contraseña temporal debe tener al menos 6 caracteres' }, { status: 400 })
+  const weak = validatePassword(pass)
+  if (weak) return NextResponse.json({ error: weak }, { status: 400 })
 
   const admin = createAdminClient()
 

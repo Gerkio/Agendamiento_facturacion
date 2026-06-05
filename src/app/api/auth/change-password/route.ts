@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { isSameOrigin } from '@/lib/auth/origin'
+import { validatePassword } from '@/lib/auth/password'
 
 export async function POST(req: NextRequest) {
   if (!isSameOrigin(req)) return NextResponse.json({ error: 'Origen no permitido' }, { status: 403 })
@@ -12,8 +13,9 @@ export async function POST(req: NextRequest) {
   const { password } = (await req.json()) as { password?: string }
   const newPassword = password?.trim() ?? ''
 
-  if (newPassword.length < 6) {
-    return NextResponse.json({ error: 'La contraseña debe tener al menos 6 caracteres' }, { status: 400 })
+  const weak = validatePassword(newPassword)
+  if (weak) {
+    return NextResponse.json({ error: weak }, { status: 400 })
   }
 
   const admin = createAdminClient()
@@ -45,7 +47,8 @@ export async function POST(req: NextRequest) {
     app_metadata: { must_change_password: false },
   })
   if (updErr) {
-    return NextResponse.json({ error: 'No se pudo actualizar: ' + updErr.message }, { status: 400 })
+    console.error('[change-password]', updErr.message)
+    return NextResponse.json({ error: 'No se pudo actualizar la contraseña.' }, { status: 400 })
   }
 
   await admin.from('user_profiles').update({ must_change_password: false }).eq('id', user.id)

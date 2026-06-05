@@ -211,7 +211,7 @@ export function generateCreditNoteXML(data: CreditNoteData): string {
       </cac:PartyName>
       <cac:PhysicalLocation>
         <cac:Address>
-          <cbc:ID>${client.city_code}</cbc:ID>
+          <cbc:ID>${xmlEscape(client.city_code)}</cbc:ID>
           <cac:AddressLine>
             <cbc:Line>${xmlEscape(client.address)}</cbc:Line>
           </cac:AddressLine>
@@ -223,10 +223,10 @@ export function generateCreditNoteXML(data: CreditNoteData): string {
       </cac:PhysicalLocation>
       <cac:PartyTaxScheme>
         <cbc:RegistrationName>${xmlEscape(client.company_name)}</cbc:RegistrationName>
-        <cbc:CompanyID schemeAgencyID="195" schemeAgencyName="CO, DIAN (Dirección de Impuestos y Aduanas Nacionales)" schemeID="${client.dv}" schemeName="31">${client.nit_cedula}</cbc:CompanyID>
-        <cbc:TaxLevelCode listName="${client.fiscal_regimen}">${client.tax_scheme}</cbc:TaxLevelCode>
+        <cbc:CompanyID schemeAgencyID="195" schemeAgencyName="CO, DIAN (Dirección de Impuestos y Aduanas Nacionales)" schemeID="${xmlEscape(client.dv)}" schemeName="31">${xmlEscape(client.nit_cedula)}</cbc:CompanyID>
+        <cbc:TaxLevelCode listName="${xmlEscape(client.fiscal_regimen)}">${xmlEscape(client.tax_scheme)}</cbc:TaxLevelCode>
         <cac:RegistrationAddress>
-          <cbc:ID>${client.city_code}</cbc:ID>
+          <cbc:ID>${xmlEscape(client.city_code)}</cbc:ID>
           <cac:Country>
             <cbc:IdentificationCode>CO</cbc:IdentificationCode>
           </cac:Country>
@@ -238,10 +238,10 @@ export function generateCreditNoteXML(data: CreditNoteData): string {
       </cac:PartyTaxScheme>
       <cac:PartyLegalEntity>
         <cbc:RegistrationName>${xmlEscape(client.company_name)}</cbc:RegistrationName>
-        <cbc:CompanyID schemeAgencyID="195" schemeAgencyName="CO, DIAN (Dirección de Impuestos y Aduanas Nacionales)" schemeID="${client.dv}" schemeName="31">${client.nit_cedula}</cbc:CompanyID>
+        <cbc:CompanyID schemeAgencyID="195" schemeAgencyName="CO, DIAN (Dirección de Impuestos y Aduanas Nacionales)" schemeID="${xmlEscape(client.dv)}" schemeName="31">${xmlEscape(client.nit_cedula)}</cbc:CompanyID>
       </cac:PartyLegalEntity>
       <cac:Contact>
-        <cbc:ElectronicMail>${client.email}</cbc:ElectronicMail>
+        <cbc:ElectronicMail>${xmlEscape(client.email)}</cbc:ElectronicMail>
       </cac:Contact>
     </cac:Party>
   </cac:AccountingCustomerParty>

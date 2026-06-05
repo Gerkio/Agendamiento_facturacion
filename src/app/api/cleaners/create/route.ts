@@ -1,4 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server'
+import { randomBytes } from 'crypto'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { requireAdmin } from '@/lib/auth/require-admin'
 import { cedulaToEmail } from '@/lib/auth/cleaner-email'
@@ -27,16 +28,19 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: 'Nombre y cédula son obligatorios' }, { status: 400 })
   }
   if (cedula.length < 4) {
-    return NextResponse.json({ error: 'La cédula es demasiado corta para usarse como contraseña' }, { status: 400 })
+    return NextResponse.json({ error: 'La cédula parece inválida (demasiado corta)' }, { status: 400 })
   }
 
   const admin = createAdminClient()
   const email = cedulaToEmail(cedula)
+  // Contraseña temporal ALEATORIA (no la cédula, que es pública/adivinable). El
+  // admin se la entrega al auxiliar y este la cambia en su primer ingreso.
+  const tempPassword = randomBytes(9).toString('base64url')
 
-  // 1) Crear el usuario de auth (usuario = cédula, contraseña inicial = cédula).
+  // 1) Crear el usuario de auth (usuario = cédula, contraseña temporal aleatoria).
   const { data: created, error: createErr } = await admin.auth.admin.createUser({
     email,
-    password: cedula,
+    password: tempPassword,
     email_confirm: true,
     user_metadata: { full_name: fullName, cedula },
     // El middleware lee este flag del JWT (sin consultar la BD por request).
@@ -93,5 +97,5 @@ export async function POST(req: NextRequest) {
     details: { cleanerId: cleaner.id, fullName },
   })
 
-  return NextResponse.json({ cleaner, username: cedula }, { status: 201 })
+  return NextResponse.json({ cleaner, username: cedula, tempPassword }, { status: 201 })
 }
