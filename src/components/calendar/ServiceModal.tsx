@@ -7,8 +7,10 @@ import { useUI } from '@/components/ui/UIProvider'
 import CleanerHojaDeVida from '@/components/cleaners/CleanerHojaDeVida'
 import MultiDatePicker from './MultiDatePicker'
 import MapEmbed from '@/components/map/MapEmbed'
-import { fullAddress } from '@/lib/maps'
-import { formatCOP } from '@/lib/format'
+import WhatsAppButton from '@/components/whatsapp/WhatsAppButton'
+import { fullAddress, mapsDirLink } from '@/lib/maps'
+import { buildAuxiliarAppointmentMessage } from '@/lib/whatsapp'
+import { formatCOP, fmtDate } from '@/lib/format'
 import {
   SEGMENTS, hhmm, scheduleLabel, addMinutesToTime, formatDuration,
   TURNOS, turnoLabel, tipoToTurno, SERVICE_CLASSES, FORMA_PAGO_OPTIONS,
@@ -442,6 +444,28 @@ export default function ServiceModal({ service, isNew, defaultStart, services, c
                     </div>
                   )}
                 </div>
+              )}
+              {selectedCleaner?.phone ? (
+                <div className="mt-3 pt-3 border-t border-gray-200">
+                  <WhatsAppButton
+                    phone={selectedCleaner.phone}
+                    message={buildAuxiliarAppointmentMessage({
+                      clientName: selectedClient.company_name,
+                      fecha: fmtDate(form.date),
+                      entrada: form.entrada,
+                      salida: form.salida,
+                      turnoLabel: form.turno ? turnoLabel(form.turno) : '',
+                      serviceType: form.service_type,
+                      addressFull: fullAddress(selectedClient.address, selectedClient.city_code),
+                      indicaciones: selectedClient.indicaciones ?? undefined,
+                      routeLink: mapsDirLink(fullAddress(selectedCleaner.address), fullAddress(selectedClient.address, selectedClient.city_code)),
+                    })}
+                    label="Enviar agendamiento al auxiliar (WhatsApp)"
+                  />
+                  <p className="text-xs text-gray-500 mt-1">Abre WhatsApp Web con el mensaje listo; solo presiona Enter para enviarlo.</p>
+                </div>
+              ) : selectedCleaner && (
+                <p className="text-xs text-amber-600 mt-3">El auxiliar no tiene teléfono registrado para WhatsApp.</p>
               )}
             </div>
           )}
