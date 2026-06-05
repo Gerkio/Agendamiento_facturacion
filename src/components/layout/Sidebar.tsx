@@ -38,8 +38,8 @@ export default function Sidebar({ role, userEmail, pendingNovedades = 0 }: Sideb
   return (
     <>
       {/* Barra superior (solo móvil) */}
-      <div className="md:hidden sticky top-0 z-30 flex items-center justify-between bg-white border-b border-gray-200 px-4 py-3">
-        <div className="text-lg font-bold text-brand-700">🧹 CleanSched</div>
+      <div className="md:hidden sticky top-0 z-30 flex items-center justify-between bg-white border-b border-gray-200 px-4 py-2">
+        <Logo className="h-10 w-auto" />
         <button type="button" onClick={() => setOpen(true)} aria-label="Abrir menú"
           className="p-2 -mr-2 rounded-lg text-gray-700 hover:bg-gray-100 text-2xl leading-none">☰</button>
       </div>
@@ -57,16 +57,18 @@ export default function Sidebar({ role, userEmail, pendingNovedades = 0 }: Sideb
         md:static md:translate-x-0 md:w-56 md:z-auto md:max-w-none
       `}>
         <div className="p-4 border-b border-gray-100">
-          <div className="flex items-center justify-between">
-            <Logo className="h-9 w-auto" />
+          <div className="relative flex items-center justify-center">
+            <Logo className="h-20 w-auto" />
             {/* Cerrar (solo móvil) */}
             <button type="button" onClick={() => setOpen(false)} aria-label="Cerrar menú"
-              className="md:hidden p-1 rounded text-gray-600 hover:text-gray-800 text-xl leading-none">✕</button>
+              className="md:hidden absolute right-0 top-0 p-1 rounded text-gray-600 hover:text-gray-800 text-xl leading-none">✕</button>
           </div>
-          <div className="text-sm text-gray-600 mt-1 truncate">{userEmail}</div>
-          <span className={`text-xs px-2 py-0.5 rounded-full mt-1 inline-block font-medium ${role === 'admin' ? 'bg-brand-100 text-brand-700' : 'bg-gray-100 text-gray-600'}`}>
-            {role === 'admin' ? 'Administrador' : 'Limpiador'}
-          </span>
+          <div className="text-sm text-gray-600 mt-2 truncate text-center">{userEmail}</div>
+          <div className="text-center mt-1">
+            <span className={`text-xs px-2 py-0.5 rounded-full inline-block font-medium ${role === 'admin' ? 'bg-brand-100 text-brand-700' : 'bg-gray-100 text-gray-600'}`}>
+              {role === 'admin' ? 'Administrador' : 'Limpiador'}
+            </span>
+          </div>
         </div>
         <nav className="flex-1 p-3 space-y-1 overflow-y-auto" aria-label="Menú principal">
           {links.map(link => {
