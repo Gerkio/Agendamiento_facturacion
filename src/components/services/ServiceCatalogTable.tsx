@@ -4,14 +4,14 @@ import { useMemo, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useUI } from '@/components/ui/UIProvider'
 import { formatCOP } from '@/lib/format'
-import { SEGMENTS, TIPOS, segmentLabel, tipoLabel, scheduleLabel, formatDuration } from '@/lib/service-catalog'
+import { SEGMENTS, TIPOS, segmentLabel, tipoLabel, scheduleLabel, formatDuration, minutesBetween, addMinutesToTime } from '@/lib/service-catalog'
 import type { ServiceCatalog, ServiceSegment, ServiceTipo } from '@/types/database'
 
 const input = 'w-full border border-gray-400 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500'
 
 const emptyForm = {
   name: '', segment: 'hogar' as ServiceSegment, tipo: 'dia_completo' as ServiceTipo,
-  start_time: '08:00', duration_minutes: '450', price_cop: '', bono_cop: '0', is_active: true,
+  start_time: '08:00', salida: '15:30', price_cop: '', bono_cop: '0', is_active: true,
 }
 
 export default function ServiceCatalogTable({ items: initial }: { items: ServiceCatalog[] }) {
@@ -43,7 +43,7 @@ export default function ServiceCatalogTable({ items: initial }: { items: Service
     setEditing(s)
     setForm({
       name: s.name, segment: s.segment, tipo: s.tipo, start_time: s.start_time.slice(0, 5),
-      duration_minutes: String(s.duration_minutes), price_cop: String(s.price_cop),
+      salida: addMinutesToTime(s.start_time, s.duration_minutes), price_cop: String(s.price_cop),
       bono_cop: String(s.bono_cop), is_active: s.is_active,
     })
     setError(null); setShowModal(true)
@@ -51,8 +51,8 @@ export default function ServiceCatalogTable({ items: initial }: { items: Service
 
   async function handleSave() {
     if (!form.name.trim()) { setError('El nombre es obligatorio.'); return }
-    const dur = parseInt(form.duration_minutes, 10)
-    if (!dur || dur <= 0) { setError('La duración debe ser mayor a 0 minutos.'); return }
+    const dur = minutesBetween(form.start_time, form.salida)
+    if (dur <= 0) { setError('La hora de salida debe ser posterior a la de entrada.'); return }
     setSaving(true); setError(null)
     const payload = {
       name: form.name.trim(), segment: form.segment, tipo: form.tipo,
@@ -195,13 +195,17 @@ export default function ServiceCatalogTable({ items: initial }: { items: Service
                 </select>
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Hora de inicio</label>
-                <input type="time" title="Hora de inicio" value={form.start_time} onChange={e => f('start_time', e.target.value)} className={input} />
+                <label className="block text-sm font-medium text-gray-700 mb-1">Hora de entrada</label>
+                <input type="time" title="Hora de entrada" value={form.start_time} onChange={e => f('start_time', e.target.value)} className={input} />
               </div>
               <div>
-                <label className="block text-sm font-medium text-gray-700 mb-1">Duración (minutos)</label>
-                <input type="number" inputMode="numeric" min={1} value={form.duration_minutes} onChange={e => f('duration_minutes', e.target.value)} className={input} placeholder="450" />
-                <p className="text-xs text-gray-500 mt-1">Horario: <strong>{scheduleLabel(form.start_time, parseInt(form.duration_minutes, 10) || 0)}</strong> ({formatDuration(parseInt(form.duration_minutes, 10) || 0)})</p>
+                <label className="block text-sm font-medium text-gray-700 mb-1">Hora de salida</label>
+                <input type="time" title="Hora de salida" value={form.salida} onChange={e => f('salida', e.target.value)} className={input} />
+                <p className="text-xs text-gray-500 mt-1">
+                  {minutesBetween(form.start_time, form.salida) > 0
+                    ? <>Duración: <strong>{formatDuration(minutesBetween(form.start_time, form.salida))}</strong></>
+                    : <span className="text-red-600">La salida debe ser posterior a la entrada.</span>}
+                </p>
               </div>
               <div>
                 <label className="block text-sm font-medium text-gray-700 mb-1">Precio (COP)</label>

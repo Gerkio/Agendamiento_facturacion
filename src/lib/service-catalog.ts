@@ -43,6 +43,13 @@ export function addMinutesToTime(time: string, mins: number): string {
   return `${String(Math.floor(total / 60)).padStart(2, '0')}:${String(total % 60).padStart(2, '0')}`
 }
 
+/** Minutos entre dos horas "HH:mm" (negativo si la salida es anterior). */
+export function minutesBetween(start: string, end: string): number {
+  const [h1, m1] = hhmm(start).split(':').map(Number)
+  const [h2, m2] = hhmm(end).split(':').map(Number)
+  return (h2 * 60 + m2) - (h1 * 60 + m1)
+}
+
 /** Duración legible: 460 → "7 h 40 min". */
 export function formatDuration(mins: number): string {
   const h = Math.floor(mins / 60), m = mins % 60
