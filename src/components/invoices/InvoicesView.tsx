@@ -6,6 +6,8 @@ import { createClient } from '@/lib/supabase/client'
 import { useUI } from '@/components/ui/UIProvider'
 import { formatCOP } from '@/lib/format'
 import { billingLabel, billingCls, serviceLabel, serviceCls } from '@/lib/status'
+import { computeTax } from '@/lib/dian/tax'
+import { buildCsv, downloadCsv } from '@/lib/csv'
 import type { Client, Invoice, Service, CreditNote } from '@/types/database'
 import type { EmisorConfig } from '@/lib/dian/emisor-config'
 
@@ -136,6 +138,30 @@ export default function InvoicesView({ clients, invoices: initial, creditNotes: 
     setSendingDian(null)
   }
 
+  // F4: libro de facturas en CSV para contabilidad. La base es `total_amount`
+  // (suma de los servicios, sin IVA); el IVA y el total se derivan con la tasa
+  // configurada del emisor, igual que la representación gráfica.
+  function exportLibro() {
+    const headers = ['N° Factura', 'Fecha', 'Cliente', 'NIT', 'Base', 'IVA', 'Total', 'Estado', 'CUFE']
+    const rows = invoices.map(inv => {
+      const cli = inv.clients as { company_name?: string; nit_cedula?: string; dv?: string } | undefined
+      const { taxableBase, taxAmount, total } = computeTax([Number(inv.total_amount)], emisor.ivaRate)
+      return [
+        inv.invoice_number ?? 'BORRADOR',
+        new Date(inv.issue_date).toLocaleDateString('es-CO'),
+        cli?.company_name ?? '',
+        cli?.nit_cedula ? `${cli.nit_cedula}${cli.dv ? `-${cli.dv}` : ''}` : '',
+        taxableBase,
+        taxAmount,
+        total,
+        billingLabel(inv.billing_status),
+        inv.cufe ?? '',
+      ]
+    })
+    const stamp = new Date().toLocaleDateString('es-CO').replace(/\//g, '-')
+    downloadCsv(`libro-facturas-${stamp}`, buildCsv(headers, rows))
+  }
+
   async function deleteInvoice(invoice: Invoice) {
     // Solo se permite eliminar borradores. Una factura numerada/enviada es un
     // documento fiscal y debe anularse con nota crédito, no borrarse.
@@ -241,8 +267,12 @@ export default function InvoicesView({ clients, invoices: initial, creditNotes: 
 
       {/* Invoice List */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-        <div className="px-5 py-4 border-b border-gray-100">
+        <div className="px-5 py-4 border-b border-gray-100 flex items-center justify-between gap-3">
           <h2 className="text-base font-semibold text-gray-700">Facturas ({invoices.length})</h2>
+          <button type="button" onClick={exportLibro} disabled={invoices.length === 0}
+            className="inline-flex items-center gap-2 text-sm px-4 py-2 rounded-lg border border-gray-300 text-gray-700 font-medium hover:bg-gray-50 disabled:opacity-50">
+            <span aria-hidden="true">⬇️</span> Exportar libro (CSV)
+          </button>
         </div>
         <div className="overflow-x-auto hidden md:block"><table className="w-full text-sm min-w-[640px]">
           <thead className="bg-gray-50 text-gray-500 text-xs uppercase">

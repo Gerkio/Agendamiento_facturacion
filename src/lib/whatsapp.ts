@@ -46,3 +46,29 @@ export function buildAuxiliarAppointmentMessage(d: AppointmentMessageData): stri
   lines.push('', '🗺️ *Cómo llegar (transporte público):*', d.routeLink)
   return lines.join('\n')
 }
+
+export interface InvoiceMessageData {
+  clientName: string
+  invoiceNumber: string
+  total: string
+  cufe?: string | null
+  dianUrl?: string | null
+}
+
+/** Mensaje pre-formateado para el CLIENTE con su factura electrónica ya validada
+ *  por la DIAN: número, total, CUFE y enlace de consulta/verificación en el portal
+ *  DIAN (donde puede ver y descargar el documento). */
+export function buildClientInvoiceMessage(d: InvoiceMessageData): string {
+  const saludo = d.clientName ? `Hola ${d.clientName}, ` : ''
+  const lines = [
+    `${saludo}aquí está tu factura electrónica de AMARU:`,
+    '',
+    `🧾 *Factura:* ${d.invoiceNumber}`,
+    `💰 *Total:* ${d.total}`,
+    '✅ Validada por la DIAN',
+  ]
+  if (d.cufe) lines.push(`🔑 *CUFE:* ${d.cufe}`)
+  if (d.dianUrl) lines.push('', '🔎 *Consulta y verifica tu factura aquí:*', d.dianUrl)
+  lines.push('', '¡Gracias por confiar en AMARU!')
+  return lines.join('\n')
+}

@@ -122,6 +122,8 @@ export interface Service {
   created_at: string
   clients?: Client
   cleaners?: Cleaner
+  /** Resumen de la factura vinculada (cuando se consulta con join a invoices). */
+  invoices?: { invoice_number: string | null; billing_status: BillingStatus } | null
 }
 
 export type ServiceSegment = 'hogar' | 'empresa'

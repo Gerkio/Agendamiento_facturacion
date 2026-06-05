@@ -7,6 +7,8 @@ import { numeroALetras } from '@/lib/dian/number-to-words'
 import { cityName } from '@/lib/dian/cities'
 import { computeTax } from '@/lib/dian/tax'
 import { formatCOP } from '@/lib/format'
+import { buildClientInvoiceMessage } from '@/lib/whatsapp'
+import WhatsAppButton from '@/components/whatsapp/WhatsAppButton'
 
 interface Props {
   invoice: Invoice
@@ -54,13 +56,32 @@ export default function InvoiceDocument({ invoice, client, services, emisor, loa
   const fmtDateTime = (d: Date) =>
     d.toLocaleString('es-CO', { year: 'numeric', month: '2-digit', day: '2-digit', hour: '2-digit', minute: '2-digit' })
 
+  // Mensaje de WhatsApp al cliente con su factura validada (número, total, CUFE y
+  // enlace de consulta en el portal DIAN). Solo se ofrece cuando ya es fiscal.
+  const dianUrl = invoice.cufe ? `https://catalogo-vpfe.dian.gov.co/document/searchqr?documentkey=${invoice.cufe}` : null
+  const clientMessage = buildClientInvoiceMessage({
+    clientName: client?.company_name ?? '',
+    invoiceNumber: invoice.invoice_number ?? '',
+    total: formatCOP(total),
+    cufe: invoice.cufe,
+    dianUrl,
+  })
+
   return (
     <div className="fixed inset-0 bg-black/60 flex items-start justify-center z-50 p-4 overflow-y-auto print:bg-white print:p-0 print:overflow-visible">
       {/* Barra de acciones — no se imprime */}
       <div className="w-full max-w-3xl print:max-w-none">
         <div className="flex items-center justify-between mb-3 print:hidden">
           <h2 className="text-white font-semibold">Representación gráfica</h2>
-          <div className="flex gap-2">
+          <div className="flex flex-wrap gap-2 justify-end">
+            {isFiscal && (
+              <WhatsAppButton
+                phone={client?.phone}
+                message={clientMessage}
+                label="Enviar al cliente"
+                className="inline-flex items-center gap-2 text-sm px-4 py-2 rounded-lg bg-brand-600 text-white font-medium hover:bg-brand-700 transition disabled:opacity-50"
+              />
+            )}
             <button
               type="button"
               onClick={() => window.print()}
