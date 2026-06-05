@@ -22,8 +22,9 @@ const bogota = (iso: string, opts: Intl.DateTimeFormatOptions) =>
   new Date(iso).toLocaleString('es-CO', { ...opts, timeZone: 'America/Bogota' })
 
 /** Historial global de TODOS los servicios: filtros (fecha, auxiliar, cliente,
- *  estado), búsqueda, exportación a CSV y facturación 1-click de un servicio
- *  completado sin factura (conecta Agenda → Facturación). */
+ *  estado), búsqueda, exportación a CSV, facturación 1-click de un servicio
+ *  completado sin factura y facturación por lote (selección múltiple, una factura
+ *  por cliente). Conecta Agenda → Facturación. */
 export default function ServicesHistory({ services, cleaners, clients }: Props) {
   const supabase = createClient()
   const { toast } = useUI()
@@ -35,6 +36,9 @@ export default function ServicesHistory({ services, cleaners, clients }: Props) 
   const [status, setStatus] = useState<StatusFilter>('all')
   const [search, setSearch] = useState('')
   const [facturando, setFacturando] = useState<string | null>(null)
+  // P6 · selección para facturación por lote (solo servicios facturables).
+  const [selected, setSelected] = useState<Set<string>>(new Set())
+  const [batchBusy, setBatchBusy] = useState(false)
 
   // Límites de fecha en hora de Colombia (UTC-5); start_time se guarda en UTC.
   const toUtcMs = (date: string, endOfDay: boolean) =>
@@ -61,6 +65,27 @@ export default function ServicesHistory({ services, cleaners, clients }: Props) 
 
   const totalCop = filtered.reduce((sum, s) => sum + Number(s.price_cop), 0)
   const hasFilters = Boolean(from || to || cleanerId || clientId || status !== 'all' || search.trim())
+
+  // Un servicio es facturable si está completado y aún no tiene factura.
+  const facturable = (s: Service) => s.status === 'completed' && !s.invoice_id
+  const facturablesFiltrados = useMemo(() => filtered.filter(facturable), [filtered])
+  const selectedFacturables = useMemo(
+    () => facturablesFiltrados.filter(s => selected.has(s.id)),
+    [facturablesFiltrados, selected],
+  )
+  const allChecked = facturablesFiltrados.length > 0 && selectedFacturables.length === facturablesFiltrados.length
+
+  function toggleOne(id: string) {
+    setSelected(prev => { const n = new Set(prev); n.has(id) ? n.delete(id) : n.add(id); return n })
+  }
+  function toggleAll() {
+    setSelected(prev => {
+      if (facturablesFiltrados.every(s => prev.has(s.id))) {
+        const n = new Set(prev); facturablesFiltrados.forEach(s => n.delete(s.id)); return n
+      }
+      const n = new Set(prev); facturablesFiltrados.forEach(s => n.add(s.id)); return n
+    })
+  }
 
   function clearFilters() {
     setFrom(''); setTo(''); setCleanerId(''); setClientId(''); setStatus('all'); setSearch('')
@@ -113,6 +138,41 @@ export default function ServicesHistory({ services, cleaners, clients }: Props) 
     toast('Borrador de factura creado. Ábrelo en Facturación para enviarlo a la DIAN.', 'success')
   }
 
+  // P6: factura los servicios seleccionados, una factura (borrador) por cliente.
+  async function facturarSeleccionados() {
+    const chosen = rows.filter(r => selected.has(r.id) && facturable(r))
+    if (!chosen.length) return
+    setBatchBusy(true)
+    // Agrupar por cliente: una factura agrupa servicios de un mismo cliente.
+    const byClient = new Map<string, Service[]>()
+    chosen.forEach(s => { const a = byClient.get(s.client_id) ?? []; a.push(s); byClient.set(s.client_id, a) })
+
+    const updates: Record<string, { invoiceId: string; ref: NonNullable<Service['invoices']> }> = {}
+    let okFacturas = 0, okServicios = 0
+    for (const [clientId, group] of byClient) {
+      const total = group.reduce((s, x) => s + Number(x.price_cop), 0)
+      const { data: invoice, error } = await supabase
+        .from('invoices')
+        .insert({ client_id: clientId, total_amount: total, billing_status: 'draft' })
+        .select('id, invoice_number, billing_status')
+        .single()
+      if (error || !invoice) continue
+      const ids = group.map(g => g.id)
+      const { error: linkErr } = await supabase.from('services').update({ invoice_id: invoice.id }).in('id', ids).is('invoice_id', null)
+      if (linkErr) { await supabase.from('invoices').delete().eq('id', invoice.id).eq('billing_status', 'draft'); continue }
+      okFacturas++; okServicios += ids.length
+      ids.forEach(id => { updates[id] = { invoiceId: invoice.id, ref: { invoice_number: invoice.invoice_number, billing_status: invoice.billing_status } } })
+    }
+
+    setRows(prev => prev.map(r => updates[r.id] ? { ...r, invoice_id: updates[r.id].invoiceId, invoices: updates[r.id].ref } : r))
+    setSelected(new Set())
+    setBatchBusy(false)
+    toast(
+      okFacturas ? `${okFacturas} factura(s) en borrador creada(s) para ${okServicios} servicio(s).` : 'No se pudo crear ninguna factura.',
+      okFacturas ? 'success' : 'error',
+    )
+  }
+
   const selectCls = 'border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500'
 
   return (
@@ -154,10 +214,32 @@ export default function ServicesHistory({ services, cleaners, clients }: Props) 
         </div>
       </div>
 
+      {/* Barra de facturación por lote (P6) */}
+      {selectedFacturables.length > 0 && (
+        <div className="bg-brand-50 border border-brand-200 rounded-xl px-4 py-3 flex flex-wrap items-center justify-between gap-3 sticky top-2 z-10">
+          <p className="text-sm text-brand-800">
+            <strong>{selectedFacturables.length}</strong> servicio(s) facturable(s) seleccionado(s) ·{' '}
+            <strong>{formatCOP(selectedFacturables.reduce((s, x) => s + Number(x.price_cop), 0))}</strong>
+          </p>
+          <div className="flex items-center gap-2">
+            <button type="button" onClick={() => setSelected(new Set())} className="text-sm px-3 py-2 rounded-lg border border-gray-300 text-gray-600 hover:bg-gray-50">
+              Quitar selección
+            </button>
+            <button type="button" onClick={facturarSeleccionados} disabled={batchBusy}
+              className="inline-flex items-center gap-2 text-sm px-4 py-2 rounded-lg bg-brand-600 text-white font-medium hover:bg-brand-700 disabled:opacity-50">
+              <span aria-hidden="true">🧾</span> {batchBusy ? 'Facturando…' : 'Facturar seleccionados'}
+            </button>
+          </div>
+        </div>
+      )}
+
       {/* Tabla */}
       <div className="bg-white rounded-xl border border-gray-200 shadow-sm overflow-hidden">
-        <div className="overflow-x-auto"><table className="w-full text-sm min-w-[820px]">
+        <div className="overflow-x-auto"><table className="w-full text-sm min-w-[860px]">
           <thead className="bg-gray-50 text-gray-500 text-xs uppercase"><tr>
+            <th className="px-4 py-3 w-10">
+              <input type="checkbox" title="Seleccionar todos los facturables" checked={allChecked} onChange={toggleAll} disabled={facturablesFiltrados.length === 0} className="rounded" />
+            </th>
             <th className="text-left px-4 py-3">Fecha</th>
             <th className="text-left px-4 py-3">Cliente</th>
             <th className="text-left px-4 py-3">Auxiliar</th>
@@ -169,10 +251,15 @@ export default function ServicesHistory({ services, cleaners, clients }: Props) 
           </tr></thead>
           <tbody className="divide-y divide-gray-100">
             {filtered.length === 0 && (
-              <tr><td colSpan={8} className="py-10 text-center text-gray-500">Sin servicios para los filtros seleccionados.</td></tr>
+              <tr><td colSpan={9} className="py-10 text-center text-gray-500">Sin servicios para los filtros seleccionados.</td></tr>
             )}
             {filtered.map(s => (
-              <tr key={s.id} className="hover:bg-gray-50">
+              <tr key={s.id} className={`hover:bg-gray-50 ${selected.has(s.id) ? 'bg-brand-50/60' : ''}`}>
+                <td className="px-4 py-3">
+                  {facturable(s) && (
+                    <input type="checkbox" title="Seleccionar para facturar" checked={selected.has(s.id)} onChange={() => toggleOne(s.id)} className="rounded" />
+                  )}
+                </td>
                 <td className="px-4 py-3 text-gray-600 whitespace-nowrap">{bogota(s.start_time, { dateStyle: 'short', timeStyle: 'short' })}</td>
                 <td className="px-4 py-3 text-gray-700">{companyOf(s)}</td>
                 <td className="px-4 py-3 text-gray-700">{cleanerOf(s)}</td>
