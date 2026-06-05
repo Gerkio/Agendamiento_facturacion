@@ -7,6 +7,7 @@ import { createClient } from '@/lib/supabase/client'
 export default function ChangePasswordPage() {
   const router = useRouter()
   const [checking, setChecking] = useState(true)
+  const [forced, setForced] = useState(false)
   const [password, setPassword] = useState('')
   const [confirm, setConfirm] = useState('')
   const [error, setError] = useState<string | null>(null)
@@ -18,6 +19,7 @@ export default function ChangePasswordPage() {
       if (!data.user) {
         router.replace('/auth/login')
       } else {
+        setForced(data.user.app_metadata?.must_change_password === true)
         setChecking(false)
       }
     })
@@ -95,9 +97,11 @@ export default function ChangePasswordPage() {
           >
             {loading ? 'Guardando…' : 'Guardar'}
           </button>
-          <button type="button" onClick={() => router.push('/dashboard')} className="w-full text-sm text-gray-500 hover:text-gray-700">
-            ← Volver al panel
-          </button>
+          {!forced && (
+            <button type="button" onClick={() => router.push('/dashboard')} className="w-full text-sm text-gray-500 hover:text-gray-700">
+              ← Volver al panel
+            </button>
+          )}
         </form>
       </div>
     </div>

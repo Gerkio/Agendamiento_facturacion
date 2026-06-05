@@ -59,7 +59,7 @@ export default function CleanerHojaDeVida({ cleaner, photoUrl, onClose }: Props)
           <div className="flex items-center gap-4">
             {signed ? (
               // eslint-disable-next-line @next/next/no-img-element
-              <img src={signed} alt={cleaner.full_name} className="w-20 h-20 rounded-full object-cover border border-gray-200" />
+              <img src={signed} alt={cleaner.full_name} onError={() => setSigned(null)} className="w-20 h-20 rounded-full object-cover border border-gray-200" />
             ) : (
               <div className="w-20 h-20 rounded-full bg-brand-100 text-brand-700 flex items-center justify-center text-2xl font-bold">{initials}</div>
             )}

@@ -1,6 +1,7 @@
 'use client'
 
 import { useEffect } from 'react'
+import { turnoLabel } from '@/lib/service-catalog'
 import type { Service, Client } from '@/types/database'
 
 /** Detalle de solo lectura de un servicio, pensado para el aseador (incluye indicaciones de llegada). */
@@ -22,7 +23,7 @@ export default function ServiceDetail({ service, onClose }: { service: Service; 
       <div onClick={e => e.stopPropagation()} className="bg-white rounded-2xl shadow-xl w-full max-w-md max-h-[90vh] overflow-y-auto">
         <div className="flex items-center justify-between p-5 border-b">
           <h2 className="text-lg font-semibold">Detalle del servicio</h2>
-          <button type="button" onClick={onClose} aria-label="Cerrar" className="text-gray-600 hover:text-gray-600 text-xl">✕</button>
+          <button type="button" onClick={onClose} aria-label="Cerrar" className="text-gray-600 hover:text-gray-800 text-xl">✕</button>
         </div>
 
         <div className="p-5 space-y-4 text-sm">
@@ -40,6 +41,12 @@ export default function ServiceDetail({ service, onClose }: { service: Service; 
               <div className="text-xs text-gray-600">Horario</div>
               <div className="text-gray-700">{fmtTime(start)} – {fmtTime(end)}</div>
             </div>
+            {service.turno && (
+              <div>
+                <div className="text-xs text-gray-600">Turno</div>
+                <div className="text-gray-700">{turnoLabel(service.turno)}</div>
+              </div>
+            )}
           </div>
 
           {service.service_type && (

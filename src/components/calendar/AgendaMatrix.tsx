@@ -369,9 +369,16 @@ export default function AgendaMatrix({ cleaners, clients, catalog = [], isAdmin,
 
       {loading && <p className="text-center text-xs text-gray-600 mt-3">Cargando semana…</p>}
       {isAdmin && (
-        <p className="text-center text-xs text-gray-600 mt-3">
-          💡 Clic en celda vacía para agendar · clic en un servicio para editarlo · <strong>arrástralo</strong> a otra celda para reprogramar · M = mañana, T = tarde.
-        </p>
+        <>
+          <div className="flex flex-wrap items-center justify-center gap-4 mt-3 text-xs text-gray-600">
+            <span className="inline-flex items-center gap-1.5"><span className="w-3 h-3 rounded" style={{ background: COLOR_SCHEDULED.background, borderLeft: COLOR_SCHEDULED.borderLeft }} /> Agendado</span>
+            <span className="inline-flex items-center gap-1.5"><span className="w-3 h-3 rounded" style={{ background: COLOR_DONE.background, borderLeft: COLOR_DONE.borderLeft }} /> Completado</span>
+            <span className="inline-flex items-center gap-1.5"><span className="w-3 h-3 rounded" style={{ background: COLOR_CONFLICT.background, borderLeft: COLOR_CONFLICT.borderLeft }} /> Doble reserva</span>
+          </div>
+          <p className="text-center text-xs text-gray-600 mt-2">
+            💡 Clic en celda vacía para agendar · clic en un servicio para editarlo · <strong>arrástralo</strong> a otra celda para reprogramar · M = mañana, T = tarde.
+          </p>
+        </>
       )}
 
       {modalOpen && (

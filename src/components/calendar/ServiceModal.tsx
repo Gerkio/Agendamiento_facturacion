@@ -59,7 +59,7 @@ export default function ServiceModal({ service, isNew, defaultStart, services, c
     service_type: service?.service_type ?? '',
     service_class: service?.service_class ?? 'Normal',
     recargo_dominical: service?.recargo_dominical ?? false,
-    forma_pago: service?.forma_pago ?? '',
+    forma_pago: service?.forma_pago ?? clients.find(c => c.id === service?.client_id)?.forma_pago ?? '',
     obs_auxiliar: service?.obs_auxiliar ?? '',
     obs_internas: service?.obs_internas ?? '',
     catalog_id: service?.catalog_id ?? '',
