@@ -59,8 +59,8 @@ export default function ChangePasswordPage() {
       <div className="bg-white rounded-2xl shadow-lg p-8 w-full max-w-sm">
         <div className="text-center mb-6">
           <div className="text-4xl mb-2">🔐</div>
-          <h1 className="text-xl font-bold text-brand-700">Cambia tu contraseña</h1>
-          <p className="text-gray-500 text-sm mt-1">Por seguridad, debes definir una contraseña nueva antes de continuar.</p>
+          <h1 className="text-xl font-bold text-brand-700">Cambiar contraseña</h1>
+          <p className="text-gray-500 text-sm mt-1">Define una contraseña nueva para tu cuenta.</p>
         </div>
         <form onSubmit={handleSubmit} className="space-y-4">
           <div>
@@ -93,7 +93,10 @@ export default function ChangePasswordPage() {
             disabled={loading}
             className="w-full bg-brand-600 hover:bg-brand-700 text-white font-medium py-2 rounded-lg transition disabled:opacity-50"
           >
-            {loading ? 'Guardando…' : 'Guardar y continuar'}
+            {loading ? 'Guardando…' : 'Guardar'}
+          </button>
+          <button type="button" onClick={() => router.push('/dashboard')} className="w-full text-sm text-gray-500 hover:text-gray-700">
+            ← Volver al panel
           </button>
         </form>
       </div>

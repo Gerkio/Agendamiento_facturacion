@@ -18,6 +18,7 @@ const adminLinks = [
   { href: '/dashboard/services', label: 'Servicios', icon: '🧰' },
   { href: '/dashboard/novedades', label: 'Novedades', icon: '📋' },
   { href: '/dashboard/invoices', label: 'Facturación', icon: '🧾' },
+  { href: '/dashboard/users', label: 'Usuarios', icon: '👥' },
   { href: '/dashboard/debug', label: 'Debug DIAN', icon: '🔧' },
 ]
 
@@ -85,7 +86,13 @@ export default function Sidebar({ role, userEmail, pendingNovedades = 0 }: Sideb
             )
           })}
         </nav>
-        <div className="p-3 border-t border-gray-100">
+        <div className="p-3 border-t border-gray-100 space-y-1">
+          <Link
+            href="/auth/change-password"
+            className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-base text-gray-700 hover:bg-gray-100 transition w-full"
+          >
+            <span className="text-lg" aria-hidden="true">🔑</span> Cambiar contraseña
+          </Link>
           <a
             href="/auth/logout"
             className="flex items-center gap-3 px-3 py-2.5 rounded-lg text-base text-gray-700 hover:bg-red-50 hover:text-red-700 transition w-full"

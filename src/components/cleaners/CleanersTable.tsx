@@ -102,10 +102,15 @@ export default function CleanersTable({ cleaners: initial, photoUrls = {} }: { c
   }
 
   async function handleToggle(c: Cleaner) {
-    const { data, error } = await supabase.from('cleaners').update({ is_active: !c.is_active }).eq('id', c.id).select().single()
-    if (error || !data) { toast('No se pudo cambiar el estado: ' + (error?.message ?? 'desconocido'), 'error'); return }
-    setCleaners(prev => prev.map(x => (x.id === c.id ? data : x)))
-    toast(data.is_active ? `${c.full_name} activado.` : `${c.full_name} desactivado.`, 'success')
+    const next = !c.is_active
+    // Vía ruta server: además de la ficha, bloquea/restablece su acceso (auth).
+    const res = await fetch(`/api/cleaners/${c.id}/active`, {
+      method: 'PATCH', headers: { 'Content-Type': 'application/json' }, body: JSON.stringify({ is_active: next }),
+    })
+    const data = await res.json()
+    if (!res.ok) { toast('No se pudo cambiar el estado: ' + (data.error ?? 'desconocido'), 'error'); return }
+    setCleaners(prev => prev.map(x => (x.id === c.id ? { ...x, is_active: next } : x)))
+    toast(next ? `${c.full_name} activado.` : `${c.full_name} desactivado (acceso bloqueado).`, 'success')
   }
 
   async function handleResetPassword(c: Cleaner) {
