@@ -2,6 +2,7 @@ import { NextRequest, NextResponse } from 'next/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { requireAdmin } from '@/lib/auth/require-admin'
 import { isSameOrigin } from '@/lib/auth/origin'
+import { CLEANER_EMAIL_DOMAIN } from '@/lib/auth/cleaner-email'
 import { recordAudit } from '@/lib/audit/log'
 
 /**
@@ -17,6 +18,7 @@ export async function POST(req: NextRequest) {
   const mail = email?.trim().toLowerCase() ?? ''
   const pass = password?.trim() ?? ''
   if (!mail || !mail.includes('@')) return NextResponse.json({ error: 'Correo inválido' }, { status: 400 })
+  if (mail.endsWith('@' + CLEANER_EMAIL_DOMAIN)) return NextResponse.json({ error: 'Ese dominio está reservado para auxiliares' }, { status: 400 })
   if (pass.length < 6) return NextResponse.json({ error: 'La contraseña temporal debe tener al menos 6 caracteres' }, { status: 400 })
 
   const admin = createAdminClient()
@@ -33,11 +35,11 @@ export async function POST(req: NextRequest) {
     return NextResponse.json({ error: dup ? 'Ya existe un usuario con ese correo' : (createErr?.message ?? 'No se pudo crear') }, { status: 400 })
   }
 
-  // 2) El trigger crea el perfil como 'cleaner'; promoverlo a admin.
+  // 2) Garantizar el perfil como admin (upsert: no depende de que el trigger
+  //    'handle_new_user' ya haya insertado la fila).
   const { error: roleErr } = await admin
     .from('user_profiles')
-    .update({ role: 'admin', must_change_password: true, email: mail })
-    .eq('id', created.user.id)
+    .upsert({ id: created.user.id, email: mail, role: 'admin', must_change_password: true })
   if (roleErr) {
     await admin.auth.admin.deleteUser(created.user.id)
     return NextResponse.json({ error: 'No se pudo asignar el rol de administrador: ' + roleErr.message }, { status: 500 })

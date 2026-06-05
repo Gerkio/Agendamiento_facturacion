@@ -38,8 +38,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
   }
 
   // Bloquear/desbloquear el acceso del usuario vinculado (si tiene cuenta).
-  const { data: profile } = await admin.from('user_profiles').select('id').eq('cleaner_id', cleanerId).single()
-  if (profile) {
+  // Nunca se banea a un administrador (evita auto-bloqueo si un admin quedó
+  // vinculado a una ficha de auxiliar).
+  const { data: profile } = await admin.from('user_profiles').select('id, role').eq('cleaner_id', cleanerId).single()
+  if (profile && profile.role !== 'admin') {
     const { error: banErr } = await admin.auth.admin.updateUserById(profile.id, {
       ban_duration: isActive ? 'none' : BAN_FOREVER,
     })

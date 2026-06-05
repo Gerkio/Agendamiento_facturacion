@@ -343,11 +343,11 @@ export default function ServiceModal({ service, isNew, defaultStart, services, c
             <div className="grid grid-cols-2 gap-3">
               <div className="flex items-center gap-2">
                 <span className="text-sm text-gray-500 w-16">Entrada</span>
-                <input title="Hora de entrada" type="time" value={form.entrada} onChange={e => set('entrada', e.target.value)} className={input} />
+                <input title="Hora de entrada" type="time" value={form.entrada} onChange={e => setForm(f => ({ ...f, entrada: e.target.value, turno: '' }))} className={input} />
               </div>
               <div className="flex items-center gap-2">
                 <span className="text-sm text-gray-500 w-12">Salida</span>
-                <input title="Hora de salida" type="time" value={form.salida} onChange={e => set('salida', e.target.value)} className={input} />
+                <input title="Hora de salida" type="time" value={form.salida} onChange={e => setForm(f => ({ ...f, salida: e.target.value, turno: '' }))} className={input} />
               </div>
             </div>
             {endBeforeStart
@@ -401,10 +401,13 @@ export default function ServiceModal({ service, isNew, defaultStart, services, c
                 <span>📅</span>
               </button>
               {extraDates.length > 0 && (
-                <p className="text-xs text-gray-500 mt-1">
-                  + {extraDates.length} día(s) adicional(es).{' '}
-                  <button type="button" onClick={() => setExtraDates([])} className="text-red-500 hover:underline">Quitar</button>
-                </p>
+                <>
+                  <p className="text-xs text-gray-500 mt-1">
+                    + {extraDates.length} día(s) adicional(es).{' '}
+                    <button type="button" onClick={() => setExtraDates([])} className="text-red-500 hover:underline">Quitar</button>
+                  </p>
+                  <p className="text-xs text-amber-600 mt-0.5">⚠️ El aviso de cruce solo cubre la fecha base; revisa los días adicionales.</p>
+                </>
               )}
             </div>
           ) : (

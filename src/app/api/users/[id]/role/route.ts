@@ -29,7 +29,10 @@ export async function PATCH(req: NextRequest, { params }: { params: Promise<{ id
     if ((count ?? 0) <= 1) return NextResponse.json({ error: 'Debe quedar al menos un administrador' }, { status: 400 })
   }
 
-  const { error: updErr } = await admin.from('user_profiles').update({ role }).eq('id', id)
+  // Al promover a admin se libera el vínculo con la ficha de auxiliar (un admin
+  // no debe poder quedar bloqueado al desactivar ese auxiliar).
+  const patch = role === 'admin' ? { role, cleaner_id: null } : { role }
+  const { error: updErr } = await admin.from('user_profiles').update(patch).eq('id', id)
   if (updErr) return NextResponse.json({ error: 'No se pudo cambiar el rol: ' + updErr.message }, { status: 400 })
 
   await recordAudit({ userId: auth.ctx.userId, action: 'role_changed', result: 'success', details: { targetId: id, role } })

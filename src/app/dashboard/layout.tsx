@@ -9,14 +9,16 @@ export default async function DashboardLayout({ children }: { children: React.Re
 
   if (!user) redirect('/auth/login')
 
+  // Primer ingreso: obligar a cambiar la contraseña antes de entrar. El flag se
+  // lee del JWT (misma fuente que el middleware) para no depender de la columna
+  // y evitar divergencias que dejen al usuario atrapado.
+  if (user.app_metadata?.must_change_password === true) redirect('/auth/change-password')
+
   const { data: profile } = await supabase
     .from('user_profiles')
-    .select('role, must_change_password')
+    .select('role')
     .eq('id', user.id)
     .single()
-
-  // Primer ingreso: obligar a cambiar la contraseña antes de entrar.
-  if (profile?.must_change_password) redirect('/auth/change-password')
 
   const role = profile?.role ?? 'cleaner'
 
