@@ -4,7 +4,7 @@ export const PASSWORD_MIN_LENGTH = 8
 
 const COMMON = new Set([
   '12345678', '123456789', '1234567890', 'password', 'qwerty123', 'contrasena', 'contraseña',
-  'admin123', 'aseo1234', '11111111', '00000000', 'abcd1234', 'iloveyou', 'cleansched',
+  'admin123', 'aseo1234', '11111111', '00000000', 'abcd1234', 'iloveyou', 'cleansched', 'amaru', 'amaru123', 'amaru1234',
 ])
 
 /** Mensaje de error si la contraseña es débil; null si es aceptable. */
