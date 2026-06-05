@@ -1,12 +1,15 @@
 'use client'
 
-import { useCallback, useEffect, useMemo, useState } from 'react'
+import { useCallback, useEffect, useMemo, useRef, useState } from 'react'
+import dynamic from 'next/dynamic'
 import { createClient } from '@/lib/supabase/client'
 import type { Service, Client, Cleaner, ServiceCatalog } from '@/types/database'
-import ServiceModal from './ServiceModal'
-import ServiceDetail from './ServiceDetail'
 import { useUI } from '@/components/ui/UIProvider'
 import { formatCOP } from '@/lib/format'
+
+// Solo se montan al interactuar → fuera del bundle inicial del dashboard.
+const ServiceModal = dynamic(() => import('./ServiceModal'), { ssr: false })
+const ServiceDetail = dynamic(() => import('./ServiceDetail'), { ssr: false })
 
 interface Props {
   cleaners: Cleaner[]
@@ -14,6 +17,12 @@ interface Props {
   catalog?: ServiceCatalog[]
   isAdmin: boolean
   cleanerId: string | null
+  /** Servicios de la semana actual precargados en el servidor (evita el
+   *  round-trip de la primera carga → LCP/FCP más rápidos en el dashboard). */
+  initialServices?: Service[]
+  /** Inicio de semana (lunes 00:00 Bogotá) calculado en el servidor; mantiene
+   *  consistente el render server/cliente para no romper la hidratación. */
+  initialWeekStartISO?: string
 }
 
 const DAY_NAMES = ['Lun', 'Mar', 'Mié', 'Jue', 'Vie', 'Sáb', 'Dom']
@@ -55,14 +64,20 @@ function periodsOf(s: Service): ('M' | 'T')[] {
 }
 const clientNameOf = (s: Service) => (s.clients as { company_name?: string } | undefined)?.company_name ?? 'Cliente'
 
-export default function AgendaMatrix({ cleaners, clients, catalog = [], isAdmin, cleanerId }: Props) {
+export default function AgendaMatrix({ cleaners, clients, catalog = [], isAdmin, cleanerId, initialServices, initialWeekStartISO }: Props) {
   const supabase = createClient()
   const { toast, confirm } = useUI()
-  const [weekStart, setWeekStart] = useState(() => mondayOf(new Date()))
+  const [weekStart, setWeekStart] = useState(() => initialWeekStartISO ? new Date(initialWeekStartISO) : mondayOf(new Date()))
   const [services, setServices] = useState<Service[]>([])
   const [loading, setLoading] = useState(true)
   const [busy, setBusy] = useState(false)
   const [dragId, setDragId] = useState<string | null>(null)
+  // Semilla del servidor para la primera semana (se consume en el primer efecto,
+  // sin pedir datos a la red). 'today' se difiere a montaje para no romper la
+  // hidratación (server en UTC vs cliente en hora local).
+  const seeded = useRef(initialServices)
+  const [todayStr, setTodayStr] = useState<string | null>(null)
+  useEffect(() => { setTodayStr(new Date().toDateString()) }, [])
 
   const [modalOpen, setModalOpen] = useState(false)
   const [editing, setEditing] = useState<Service | null>(null)
@@ -92,7 +107,12 @@ export default function AgendaMatrix({ cleaners, clients, catalog = [], isAdmin,
     setLoading(false)
   }, [supabase, weekStart, isAdmin, cleanerId])
 
-  useEffect(() => { fetchWeek() }, [fetchWeek])
+  useEffect(() => {
+    // Primera carga: usar la semilla del servidor (sin round-trip). Navegar a
+    // otra semana descarta la semilla y pide los datos normalmente.
+    if (seeded.current) { setServices(seeded.current); setLoading(false); seeded.current = undefined; return }
+    fetchWeek()
+  }, [fetchWeek])
 
   const cellMap = useMemo(() => {
     // both = servicios que cruzan mañana y tarde (tarjeta ancha sobre las dos
@@ -252,7 +272,7 @@ export default function AgendaMatrix({ cleaners, clients, catalog = [], isAdmin,
             const list = [...(dayCell?.both ?? []), ...(dayCell?.M ?? []), ...(dayCell?.T ?? [])]
               .sort((a, b) => +new Date(a.start_time) - +new Date(b.start_time))
             if (list.length === 0) return null
-            const isToday = d.toDateString() === new Date().toDateString()
+            const isToday = todayStr === d.toDateString()
             return (
               <div key={dIdx}>
                 <div className={`text-sm font-semibold mb-2 ${isToday ? 'text-brand-700' : 'text-gray-600'}`}>
@@ -299,7 +319,7 @@ export default function AgendaMatrix({ cleaners, clients, catalog = [], isAdmin,
             <tr className="bg-gray-50">
               <th rowSpan={2} className="sticky left-0 z-10 bg-gray-50 text-left px-4 py-2 border-b border-r border-gray-200 font-semibold text-gray-600 min-w-[150px]">Auxiliar</th>
               {days.map((d, i) => {
-                const isToday = d.toDateString() === new Date().toDateString()
+                const isToday = todayStr === d.toDateString()
                 return (
                   <th key={i} colSpan={2} className={`px-2 py-2 border-b border-r border-gray-200 text-center text-xs font-semibold ${isToday ? 'bg-brand-50 text-brand-700' : 'text-gray-600'}`}>
                     {DAY_NAMES[i]} {d.getDate()}

@@ -1,14 +1,17 @@
 'use client'
 
 import { useRef, useState } from 'react'
+import dynamic from 'next/dynamic'
 import { createClient } from '@/lib/supabase/client'
 import { useUI } from '@/components/ui/UIProvider'
-import InvoiceDocument from '@/components/invoices/InvoiceDocument'
-import CreditNoteModal from '@/components/invoices/CreditNoteModal'
 import { formatCOP } from '@/lib/format'
 import { billingLabel, billingCls, serviceLabel, serviceCls } from '@/lib/status'
 import type { Client, Invoice, Service, CreditNote } from '@/types/database'
 import type { EmisorConfig } from '@/lib/dian/emisor-config'
+
+// Modales pesados: solo se cargan al abrirlos (fuera del bundle inicial).
+const InvoiceDocument = dynamic(() => import('@/components/invoices/InvoiceDocument'), { ssr: false })
+const CreditNoteModal = dynamic(() => import('@/components/invoices/CreditNoteModal'), { ssr: false })
 
 interface Props {
   clients: Client[]

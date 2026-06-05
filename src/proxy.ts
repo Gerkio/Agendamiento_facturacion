@@ -24,7 +24,11 @@ export async function proxy(request: NextRequest) {
     }
   )
 
-  const { data: { user } } = await supabase.auth.getUser()
+  // Si no hay cookie de sesión de Supabase, el visitante está deslogueado: nos
+  // ahorramos la validación de token (un round-trip a Supabase) → TTFB más bajo
+  // en páginas públicas como /auth/login.
+  const hasAuthCookie = request.cookies.getAll().some(c => c.name.startsWith('sb-') && c.name.includes('-auth-token'))
+  const user = hasAuthCookie ? (await supabase.auth.getUser()).data.user : null
   const pathname = request.nextUrl.pathname
 
   // Rutas accesibles sin sesión.
