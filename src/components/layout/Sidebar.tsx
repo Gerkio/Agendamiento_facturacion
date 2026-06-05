@@ -20,6 +20,7 @@ const adminLinks = [
   { href: '/dashboard/novedades', label: 'Novedades', icon: '📋' },
   { href: '/dashboard/invoices', label: 'Facturación', icon: '🧾' },
   { href: '/dashboard/history', label: 'Historial', icon: '🗂️' },
+  { href: '/dashboard/reports', label: 'Reportes', icon: '📊' },
   { href: '/dashboard/users', label: 'Usuarios', icon: '👥' },
   { href: '/dashboard/debug', label: 'Debug DIAN', icon: '🔧' },
 ]
