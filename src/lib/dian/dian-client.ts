@@ -41,11 +41,19 @@ export async function sendToDian(
   return parseDianResponse(raw)
 }
 
+// Escapa metacaracteres antes de incrustar un string en una RegExp. Prefiere el
+// RegExp.escape nativo (Node 24) y cae a la versión manual si no está disponible.
+const reEsc = (s: string): string => {
+  const fn = (RegExp as unknown as { escape?: (s: string) => string }).escape
+  return fn ? fn(s) : s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
+}
+
 function extractTag(xml: string, tag: string): string {
+  const t = reEsc(tag)
   const patterns = [
-    new RegExp(`<[^>]*:${tag}[^>]*>([\\s\\S]*?)<\/[^>]*:${tag}>`, 'i'),
-    new RegExp(`<${tag}[^>]*>([\\s\\S]*?)<\/${tag}>`, 'i'),
-    new RegExp(`<b:${tag}[^>]*>([\\s\\S]*?)<\/b:${tag}>`, 'i'),
+    new RegExp(`<[^>]*:${t}[^>]*>([\\s\\S]*?)<\/[^>]*:${t}>`, 'i'),
+    new RegExp(`<${t}[^>]*>([\\s\\S]*?)<\/${t}>`, 'i'),
+    new RegExp(`<b:${t}[^>]*>([\\s\\S]*?)<\/b:${t}>`, 'i'),
   ]
   for (const p of patterns) {
     const m = xml.match(p)

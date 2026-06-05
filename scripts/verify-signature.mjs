@@ -9,6 +9,7 @@
  * ambiente de habilitación); prueba que la CANONICALIZACIÓN y la firma son correctas.
  */
 import { execFileSync } from 'node:child_process'
+import { styleText } from 'node:util'
 import { mkdtempSync, readFileSync, rmSync, existsSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -120,7 +121,7 @@ try {
   const result = verify(signed, cert)
 
   console.log('Firma XAdES generada con exc-c14n (xml-crypto).')
-  console.log('Verificación interna:', result.ok ? 'VÁLIDA ✅' : 'INVÁLIDA ❌ — ' + result.reason)
+  console.log('Verificación interna:', result.ok ? styleText('green', 'VÁLIDA ✅') : styleText('red', 'INVÁLIDA ❌ — ' + result.reason))
   console.log('  • Digest documento (enveloped+exc-c14n): coincide')
   console.log('  • Digest SignedProperties (exc-c14n)    : coincide')
   console.log('  • Firma RSA-SHA256 sobre SignedInfo     : valida')

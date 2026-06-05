@@ -6,6 +6,7 @@
  *   node --conditions=react-server scripts/align-generator.mjs
  */
 import { execFileSync } from 'node:child_process'
+import { styleText } from 'node:util'
 import { mkdtempSync, readFileSync, rmSync, existsSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
@@ -73,12 +74,12 @@ rmSync(dir, { recursive: true, force: true })
 // XSD
 const xsd = await validateInvoiceXsd(signed)
 console.log('\n=== XSD (UBL 2.1 DIAN) ===')
-console.log('válido:', xsd.valid)
-if (!xsd.valid) xsd.errors.slice(0,8).forEach(e => console.log('  •', e))
+console.log('válido:', xsd.valid ? styleText('green', 'true') : styleText('red', 'false'))
+if (!xsd.valid) xsd.errors.slice(0,8).forEach(e => console.log('  •', styleText('red', e)))
 
 // Schematron
 const sch = await validateBusinessRules(signed)
 console.log('\n=== Schematron (reglas de negocio) ===')
-console.log('VÁLIDO:', sch.valid, '| relevantes:', sch.findings.length, '| ignoradas (reglas obsoletas):', sch.ignored.length)
-for (const f of sch.findings) console.log(`  ❌ [${f.id}] ${f.text}`)
-for (const f of sch.ignored) console.log(`  ⚪ [${f.id}] (regla obsoleta de la Caja, ignorada)`)
+console.log('VÁLIDO:', sch.valid ? styleText('green', 'true') : styleText('red', 'false'), '| relevantes:', sch.findings.length, '| ignoradas (reglas obsoletas):', sch.ignored.length)
+for (const f of sch.findings) console.log(styleText('red', `  ❌ [${f.id}] ${f.text}`))
+for (const f of sch.ignored) console.log(styleText('dim', `  ⚪ [${f.id}] (regla obsoleta de la Caja, ignorada)`))

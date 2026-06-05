@@ -6,6 +6,7 @@
  */
 import { existsSync, readdirSync, statSync } from 'fs'
 import { join } from 'path'
+import { styleText } from 'node:util'
 
 const ROOT = process.cwd()
 
@@ -47,15 +48,15 @@ const rows = CHECKS.map(([label, path, blocking, fn]) => {
 console.log('\n  Preflight de artefactos DIAN (Anexo 1.9)\n  ' + '─'.repeat(56))
 for (const r of rows) {
   const icon = r.ok ? '✅' : (r.blocking ? '⛔' : '⬜')
-  const tag = r.ok ? 'presente' : (r.blocking ? 'FALTA (bloqueante)' : 'pendiente')
+  const tag = r.ok ? styleText('green', 'presente') : (r.blocking ? styleText('red', 'FALTA (bloqueante)') : styleText('dim', 'pendiente'))
   console.log(`  ${icon}  ${r.label.padEnd(38)} ${tag}`)
 }
 console.log('  ' + '─'.repeat(56))
 
 if (missingBlocking > 0) {
-  console.log(`\n  ${missingBlocking} artefacto(s) BLOQUEANTE(S) faltante(s). Descárgalos de la`)
+  console.log(styleText('red', `\n  ${missingBlocking} artefacto(s) BLOQUEANTE(S) faltante(s).`) + ' Descárgalos de la')
   console.log('  Caja de Herramientas 1.9 y colócalos según dian/README.md.\n')
   process.exit(1)
 } else {
-  console.log('\n  Todos los artefactos bloqueantes están presentes. ✅\n')
+  console.log(styleText('green', '\n  Todos los artefactos bloqueantes están presentes. ✅\n'))
 }
