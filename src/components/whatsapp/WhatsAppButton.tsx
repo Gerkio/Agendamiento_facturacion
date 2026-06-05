@@ -24,7 +24,7 @@ export default function WhatsAppButton({ phone, message, label = 'Enviar por Wha
       type="button"
       onClick={send}
       disabled={!valid}
-      className={className ?? 'inline-flex items-center gap-2 text-sm px-4 py-2 rounded-lg bg-green-600 text-white font-medium hover:bg-green-700 transition disabled:opacity-50'}
+      className={className ?? 'inline-flex items-center gap-2 text-sm px-4 py-2 rounded-lg bg-brand-600 text-white font-medium hover:bg-brand-700 transition disabled:opacity-50'}
     >
       <span aria-hidden="true">💬</span> {label}
     </button>

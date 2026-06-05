@@ -499,7 +499,7 @@ export default function ServiceModal({ service, isNew, defaultStart, services, c
           {/* Finalizar (servicio existente aún agendado) */}
           {!isNew && form.status === 'scheduled' && (
             <button type="button" onClick={handleFinalize} disabled={loading}
-              className="md:col-span-2 px-4 py-2.5 rounded-lg text-sm bg-green-600 text-white font-medium hover:bg-green-700 transition disabled:opacity-50">
+              className="md:col-span-2 px-4 py-2.5 rounded-lg text-sm bg-brand-600 text-white font-medium hover:bg-brand-700 transition disabled:opacity-50">
               ✅ Finalizar servicio (listo para facturar)
             </button>
           )}

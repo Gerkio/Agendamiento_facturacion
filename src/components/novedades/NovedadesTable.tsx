@@ -236,7 +236,7 @@ export default function NovedadesTable({ novedades: initial, cleaners }: { noved
             <div className="flex flex-wrap justify-end gap-3 p-5 border-t">
               <button type="button" onClick={saveObs} disabled={working} className="px-4 py-2 rounded-lg text-sm border border-gray-300 hover:bg-gray-50 disabled:opacity-50">Guardar observación</button>
               {detail.status === 'pendiente' && (
-                <button type="button" onClick={resolve} disabled={working} className="px-4 py-2 rounded-lg text-sm bg-green-600 text-white hover:bg-green-700 disabled:opacity-50">Marcar resuelta</button>
+                <button type="button" onClick={resolve} disabled={working} className="px-4 py-2 rounded-lg text-sm bg-brand-600 text-white hover:bg-brand-700 disabled:opacity-50">Marcar resuelta</button>
               )}
             </div>
           </div>
