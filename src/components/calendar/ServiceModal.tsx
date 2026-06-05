@@ -5,6 +5,7 @@ import { useRouter } from 'next/navigation'
 import { createClient } from '@/lib/supabase/client'
 import { useUI } from '@/components/ui/UIProvider'
 import CleanerHojaDeVida from '@/components/cleaners/CleanerHojaDeVida'
+import MultiDatePicker from './MultiDatePicker'
 import { formatCOP } from '@/lib/format'
 import {
   SEGMENTS, hhmm, scheduleLabel, addMinutesToTime, formatDuration,
@@ -29,14 +30,7 @@ interface Props {
   onClose: () => void
 }
 
-const RECURRENCE_OPTIONS = [
-  { value: 'none', label: 'Una sola vez' },
-  { value: 'daily', label: 'Cada día (8 veces)' },
-  { value: 'weekly', label: 'Cada semana (8 veces)' },
-  { value: 'biweekly', label: 'Cada 15 días (8 veces)' },
-]
-
-const input = 'w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500'
+const input ='w-full border border-gray-300 rounded-lg px-3 py-2.5 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500'
 
 const pad = (n: number) => String(n).padStart(2, '0')
 const dateOf = (d: Date) => `${d.getFullYear()}-${pad(d.getMonth() + 1)}-${pad(d.getDate())}`
@@ -62,7 +56,6 @@ export default function ServiceModal({ service, isNew, defaultStart, services, c
     turno: service?.turno ?? '',
     price_cop: service?.price_cop?.toString() ?? '',
     status: service?.status ?? 'scheduled',
-    recurrence: 'none',
     service_type: service?.service_type ?? '',
     service_class: service?.service_class ?? 'Normal',
     recargo_dominical: service?.recargo_dominical ?? false,
@@ -75,11 +68,18 @@ export default function ServiceModal({ service, isNew, defaultStart, services, c
   const [showHoja, setShowHoja] = useState(false)
   const [showClientInfo, setShowClientInfo] = useState(false)
   const [showResumen, setShowResumen] = useState(false)
+  const [showDatePicker, setShowDatePicker] = useState(false)
   const [updatingReq, setUpdatingReq] = useState(false)
+  // Días adicionales (además de la Fecha base) para agendar el mismo servicio.
+  const [extraDates, setExtraDates] = useState<string[]>([])
 
   const selectedClient = clients.find(c => c.id === form.client_id)
   const selectedCleaner = cleaners.find(c => c.id === form.cleaner_id)
-  const periodicidad = RECURRENCE_OPTIONS.find(o => o.value === form.recurrence)?.label ?? 'Una sola vez'
+  // Todos los días a agendar: la fecha base + los adicionales (sin duplicar).
+  const allDates = useMemo(
+    () => Array.from(new Set([form.date, ...extraDates])).sort(),
+    [form.date, extraDates],
+  )
 
   useEffect(() => {
     const onKey = (e: KeyboardEvent) => { if (e.key === 'Escape') onClose() }
@@ -173,15 +173,12 @@ export default function ServiceModal({ service, isNew, defaultStart, services, c
       const extra = commonFields()
 
       if (isNew) {
-        const intervals: Record<string, number> = { daily: 1, weekly: 7, biweekly: 14 }
-        const days = intervals[form.recurrence] ?? 0
-        const count = days > 0 ? 8 : 1
-        const groupId = days > 0 ? crypto.randomUUID() : null
-        const startMs = new Date(startISO).getTime()
-        const durationMs = new Date(endISO).getTime() - startMs
-        const rows = Array.from({ length: count }, (_, i) => {
-          const s = new Date(startMs + i * days * 86400_000)
-          const e = new Date(s.getTime() + durationMs)
+        // Un servicio por cada día seleccionado (fecha base + adicionales).
+        const multi = allDates.length > 1
+        const groupId = multi ? crypto.randomUUID() : null
+        const rows = allDates.map(d => {
+          const s = new Date(`${d}T${form.entrada}`)
+          const e = new Date(`${d}T${form.salida}`)
           return {
             client_id: form.client_id,
             cleaner_id: form.cleaner_id,
@@ -189,7 +186,7 @@ export default function ServiceModal({ service, isNew, defaultStart, services, c
             end_time: e.toISOString(),
             price_cop: price,
             status: 'scheduled',
-            is_recurring: days > 0,
+            is_recurring: multi,
             recurrence_group_id: groupId,
             ...extra,
           }
@@ -393,13 +390,22 @@ export default function ServiceModal({ service, isNew, defaultStart, services, c
             {form.service_type && <p className="text-xs text-gray-500 mt-1">{form.service_type}</p>}
           </div>
 
-          {/* Periodicidad */}
+          {/* Periodicidad: calendario para repetir en varios días (opcional) */}
           {isNew ? (
             <div>
-              <label className="block text-sm font-medium text-gray-700 mb-1">Periodicidad</label>
-              <select title="Periodicidad" value={form.recurrence} onChange={e => set('recurrence', e.target.value)} className={input}>
-                {RECURRENCE_OPTIONS.map(o => <option key={o.value} value={o.value}>{o.label}</option>)}
-              </select>
+              <label className="block text-sm font-medium text-gray-700 mb-1">Periodicidad (opcional)</label>
+              <button type="button" onClick={() => setShowDatePicker(true)} className={input + ' text-left flex items-center justify-between hover:bg-gray-50'}>
+                <span className={extraDates.length ? 'text-gray-800' : 'text-gray-500'}>
+                  {extraDates.length ? `${allDates.length} días seleccionados` : 'Solo la fecha indicada'}
+                </span>
+                <span>📅</span>
+              </button>
+              {extraDates.length > 0 && (
+                <p className="text-xs text-gray-500 mt-1">
+                  + {extraDates.length} día(s) adicional(es).{' '}
+                  <button type="button" onClick={() => setExtraDates([])} className="text-red-500 hover:underline">Quitar</button>
+                </p>
+              )}
             </div>
           ) : (
             <div>
@@ -468,7 +474,7 @@ export default function ServiceModal({ service, isNew, defaultStart, services, c
           <div className="flex gap-3">
             <button type="button" onClick={onClose} className="px-4 py-2.5 rounded-lg text-sm border border-gray-300 hover:bg-gray-50 transition">Cerrar</button>
             <button type="button" onClick={handleSave} disabled={!canSave} className="px-5 py-2.5 rounded-lg text-sm bg-brand-600 text-white font-medium hover:bg-brand-700 transition disabled:opacity-50">
-              {loading ? 'Guardando…' : isNew ? 'Agendar' : 'Modificar servicio'}
+              {loading ? 'Guardando…' : isNew ? (allDates.length > 1 ? `Agendar ${allDates.length} días` : 'Agendar') : 'Modificar servicio'}
             </button>
           </div>
         </div>
@@ -477,6 +483,15 @@ export default function ServiceModal({ service, isNew, defaultStart, services, c
 
     {showHoja && selectedCleaner && (
       <CleanerHojaDeVida cleaner={selectedCleaner} onClose={() => setShowHoja(false)} />
+    )}
+
+    {showDatePicker && (
+      <MultiDatePicker
+        selected={extraDates}
+        baseDate={form.date}
+        onChange={setExtraDates}
+        onClose={() => setShowDatePicker(false)}
+      />
     )}
 
     {showClientInfo && selectedClient && (
@@ -520,7 +535,7 @@ export default function ServiceModal({ service, isNew, defaultStart, services, c
             <ResumenRow k="Tipo de servicio" v={form.service_type || '—'} />
             <ResumenRow k="Tipo" v={form.service_class} />
             {form.recargo_dominical && <ResumenRow k="Recargo" v="Dominical o festivo" />}
-            <ResumenRow k="Periodicidad" v={isNew ? periodicidad : (service?.is_recurring ? 'Recurrente (fijo)' : 'Una sola vez')} />
+            <ResumenRow k="Periodicidad" v={isNew ? (allDates.length > 1 ? `${allDates.length} días` : 'Una sola vez') : (service?.is_recurring ? 'Recurrente (fijo)' : 'Una sola vez')} />
             <ResumenRow k="Forma de pago" v={form.forma_pago || selectedClient?.forma_pago || '—'} />
             <ResumenRow k="Valor" v={form.price_cop ? formatCOP(Number(form.price_cop)) : '—'} />
             <ResumenRow k="Dirección" v={selectedClient?.address ?? '—'} />
