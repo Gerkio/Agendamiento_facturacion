@@ -11,7 +11,8 @@ const csp = [
   "default-src 'self'",
   `script-src 'self' 'unsafe-inline'${isProd ? '' : " 'unsafe-eval'"}`,
   "style-src 'self' 'unsafe-inline'",
-  "img-src 'self' data: blob:",
+  // Fotos (auxiliares/clientes) servidas como URL firmada desde Supabase Storage.
+  "img-src 'self' data: blob: https://*.supabase.co",
   "font-src 'self' data:",
   // Supabase (Auth/DB/Realtime) + llamadas propias. En dev, websockets de HMR.
   `connect-src 'self' https://*.supabase.co wss://*.supabase.co${isProd ? '' : ' ws: http://localhost:*'}`,
