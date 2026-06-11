@@ -2,11 +2,9 @@
 
 import { useEffect, useMemo, useState } from 'react'
 import { useRouter } from 'next/navigation'
+import dynamic from 'next/dynamic'
 import { createClient } from '@/lib/supabase/client'
 import { useUI } from '@/components/ui/UIProvider'
-import CleanerHojaDeVida from '@/components/cleaners/CleanerHojaDeVida'
-import MultiDatePicker from './MultiDatePicker'
-import MapEmbed from '@/components/map/MapEmbed'
 import WhatsAppButton from '@/components/whatsapp/WhatsAppButton'
 import { fullAddress, mapsDirLink } from '@/lib/maps'
 import { buildAuxiliarAppointmentMessage, buildClientReminderMessage } from '@/lib/whatsapp'
@@ -16,6 +14,12 @@ import {
   TURNOS, turnoLabel, tipoToTurno, SERVICE_CLASSES, FORMA_PAGO_OPTIONS,
 } from '@/lib/service-catalog'
 import type { Service, Client, Cleaner, ServiceCatalog, Novedad } from '@/types/database'
+
+// Solo se montan al interactuar (hoja de vida, calendario de fechas, mapa de
+// ruta) → fuera del chunk inicial del modal de agendamiento.
+const CleanerHojaDeVida = dynamic(() => import('@/components/cleaners/CleanerHojaDeVida'), { ssr: false })
+const MultiDatePicker = dynamic(() => import('./MultiDatePicker'), { ssr: false })
+const MapEmbed = dynamic(() => import('@/components/map/MapEmbed'), { ssr: false })
 
 interface Props {
   service: Service | null

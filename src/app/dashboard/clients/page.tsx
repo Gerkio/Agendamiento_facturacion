@@ -1,15 +1,9 @@
-import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
+import { requireAdmin } from '@/lib/auth'
 import ClientsTable from '@/components/clients/ClientsTable'
 import type { Client } from '@/types/database'
 
 export default async function ClientsPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/auth/login')
-
-  const { data: profile } = await supabase.from('user_profiles').select('role').eq('id', user.id).single()
-  if (profile?.role !== 'admin') redirect('/dashboard')
+  const supabase = await requireAdmin()
 
   // La lista solo muestra estas columnas; la ficha de detalle recarga el cliente
   // completo. Evita traer los campos pesados/AMARU de cada fila.

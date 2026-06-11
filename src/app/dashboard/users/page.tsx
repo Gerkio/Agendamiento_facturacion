@@ -1,14 +1,12 @@
-import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
+import { getAuth } from '@/lib/auth'
 import UsersTable, { type UserRow } from '@/components/users/UsersTable'
 
 export default async function UsersPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  // getAuth (no requireAdmin) porque además del guard se necesita user.id.
+  const { supabase, user, role } = await getAuth()
   if (!user) redirect('/auth/login')
-
-  const { data: profile } = await supabase.from('user_profiles').select('role').eq('id', user.id).single()
-  if (profile?.role !== 'admin') redirect('/dashboard')
+  if (role !== 'admin') redirect('/dashboard')
 
   const { data: users } = await supabase
     .from('user_profiles')

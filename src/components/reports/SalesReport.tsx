@@ -1,23 +1,30 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useUI } from '@/components/ui/UIProvider'
 import { formatCOP } from '@/lib/format'
 import { buildCsv, downloadCsv } from '@/lib/csv'
-import { bogotaMonthRange, bogotaDayStartISO, bogotaDayEndISO } from '@/lib/dates'
+import { bogotaDayStartISO, bogotaDayEndISO } from '@/lib/dates'
 
-interface InvoiceRow {
+export interface InvoiceRow {
   total_amount: number
   billing_status: string
   issue_date: string
   client_id: string
   clients?: { company_name?: string } | null
 }
-interface ServiceRow {
+export interface ServiceRow {
   price_cop: number
   service_type: string | null
   status: string
+}
+
+interface Props {
+  /** Semilla del servidor (mes en curso): pinta sin spinner ni round-trip. */
+  initialRange: { from: string; to: string }
+  initialInvoices: InvoiceRow[]
+  initialServices: ServiceRow[]
 }
 
 const PROCESO = ['draft', 'processing', 'signed']
@@ -25,13 +32,13 @@ const PROCESO = ['draft', 'processing', 'signed']
 /** Reporte de ventas (F3): cruza Facturación + Servicios + Clientes en un periodo.
  *  KPIs (facturado validado, ticket promedio, en proceso, rechazadas) + desglose
  *  por cliente y por tipo de servicio. Sin dependencia de gráficos. */
-export default function SalesReport() {
+export default function SalesReport({ initialRange, initialInvoices, initialServices }: Props) {
   const supabase = createClient()
   const { toast } = useUI()
-  const [range, setRange] = useState(() => bogotaMonthRange())
-  const [invoices, setInvoices] = useState<InvoiceRow[]>([])
-  const [services, setServices] = useState<ServiceRow[]>([])
-  const [loading, setLoading] = useState(true)
+  const [range, setRange] = useState(initialRange)
+  const [invoices, setInvoices] = useState<InvoiceRow[]>(initialInvoices)
+  const [services, setServices] = useState<ServiceRow[]>(initialServices)
+  const [loading, setLoading] = useState(false)
 
   async function load(from: string, to: string) {
     if (!from || !to) return
@@ -46,9 +53,6 @@ export default function SalesReport() {
     setServices((svc as ServiceRow[]) ?? [])
     setLoading(false)
   }
-
-  // Carga inicial (mes en curso). El usuario recarga con "Generar".
-  useEffect(() => { load(range.from, range.to) }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const kpis = useMemo(() => {
     const validadas = invoices.filter(i => i.billing_status === 'sent_dian')

@@ -1,13 +1,13 @@
 'use client'
 
-import { useEffect, useMemo, useState } from 'react'
+import { useMemo, useState } from 'react'
 import { createClient } from '@/lib/supabase/client'
 import { useUI } from '@/components/ui/UIProvider'
 import { formatCOP, fmtDate } from '@/lib/format'
 import { buildCsv, downloadCsv } from '@/lib/csv'
 import { bogotaToday, bogotaDayStartISO } from '@/lib/dates'
 
-interface Inv {
+export interface Inv {
   id: string
   invoice_number: string | null
   issue_date: string
@@ -15,7 +15,13 @@ interface Inv {
   client_id: string
   clients?: { company_name?: string; forma_pago?: string | null } | null
 }
-interface Pay { id: string; invoice_id: string; amount: number; paid_at: string; method: string | null; note: string | null }
+export interface Pay { id: string; invoice_id: string; amount: number; paid_at: string; method: string | null; note: string | null }
+
+interface Props {
+  /** Semilla del servidor: pinta sin spinner ni round-trips del navegador. */
+  initialInvoices: Inv[]
+  initialPayments: Pay[]
+}
 
 const MEDIOS = ['Efectivo', 'Transferencia', 'Consignación', 'Cheque', 'Otro']
 const DIAS_CREDITO = 30
@@ -28,28 +34,12 @@ const dueDateOf = (i: Inv) => new Date(new Date(i.issue_date).getTime() + DIAS_C
  *  abonos (tabla invoice_payments) para mostrar saldo, estado y mora, y registrar
  *  pagos. El saldo se deriva (total − abonos), nunca se almacena. Conecta
  *  Facturación + Clientes. Solo admin (RLS + guard de página). */
-export default function ReceivablesView() {
-  const supabase = createClient()
-  const { toast } = useUI()
-  const [invoices, setInvoices] = useState<Inv[]>([])
-  const [payments, setPayments] = useState<Pay[]>([])
-  const [loading, setLoading] = useState(true)
+export default function ReceivablesView({ initialInvoices, initialPayments }: Props) {
+  const [invoices] = useState<Inv[]>(initialInvoices)
+  const [payments, setPayments] = useState<Pay[]>(initialPayments)
   const [soloSaldo, setSoloSaldo] = useState(true)
   const [search, setSearch] = useState('')
   const [modalInv, setModalInv] = useState<Inv | null>(null)
-
-  async function load() {
-    setLoading(true)
-    const [{ data: inv, error: e1 }, { data: pays, error: e2 }] = await Promise.all([
-      supabase.from('invoices').select('id, invoice_number, issue_date, total_amount, client_id, clients(company_name, forma_pago)').eq('billing_status', 'sent_dian').order('issue_date'),
-      supabase.from('invoice_payments').select('id, invoice_id, amount, paid_at, method, note'),
-    ])
-    if (e1 || e2) toast('Error cargando la cartera: ' + (e1?.message ?? e2?.message ?? ''), 'error')
-    setInvoices((inv as Inv[]) ?? [])
-    setPayments((pays as Pay[]) ?? [])
-    setLoading(false)
-  }
-  useEffect(() => { load() }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const paidByInvoice = useMemo(() => {
     const m = new Map<string, number>()
@@ -139,9 +129,8 @@ export default function ReceivablesView() {
             <th className="px-4 py-3"><span className="sr-only">Acciones</span></th>
           </tr></thead>
           <tbody className="divide-y divide-gray-100">
-            {loading && <tr><td colSpan={8} className="py-10 text-center text-gray-500">Cargando…</td></tr>}
-            {!loading && filas.length === 0 && <tr><td colSpan={8} className="py-10 text-center text-gray-500">Sin facturas en cartera.</td></tr>}
-            {!loading && filas.map(f => (
+            {filas.length === 0 && <tr><td colSpan={8} className="py-10 text-center text-gray-500">Sin facturas en cartera.</td></tr>}
+            {filas.map(f => (
               <tr key={f.inv.id} className="hover:bg-gray-50">
                 <td className="px-4 py-3 font-mono text-xs">{f.inv.invoice_number ?? 'BORRADOR'}</td>
                 <td className="px-4 py-3 text-gray-700">{companyOf(f.inv)}</td>

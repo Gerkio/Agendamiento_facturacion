@@ -1,11 +1,13 @@
-import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
+import { getAuth } from '@/lib/auth'
 import Sidebar from '@/components/layout/Sidebar'
 import { UIProvider } from '@/components/ui/UIProvider'
+import type { UserRole } from '@/types/database'
 
 export default async function DashboardLayout({ children }: { children: React.ReactNode }) {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  // Auth compartida por request (React cache): la misma resolución que reutilizan
+  // las páginas hijas, sin repetir getUser ni la lectura de user_profiles.
+  const { supabase, user, role: rawRole } = await getAuth()
 
   if (!user) redirect('/auth/login')
 
@@ -14,13 +16,7 @@ export default async function DashboardLayout({ children }: { children: React.Re
   // y evitar divergencias que dejen al usuario atrapado.
   if (user.app_metadata?.must_change_password === true) redirect('/auth/change-password')
 
-  const { data: profile } = await supabase
-    .from('user_profiles')
-    .select('role')
-    .eq('id', user.id)
-    .single()
-
-  const role = profile?.role ?? 'cleaner'
+  const role = (rawRole ?? 'cleaner') as UserRole
 
   // Conteo de novedades pendientes para el badge del menú (solo admin).
   let pendingNovedades = 0

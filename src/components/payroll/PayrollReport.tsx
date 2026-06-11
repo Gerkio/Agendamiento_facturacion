@@ -5,15 +5,21 @@ import { createClient } from '@/lib/supabase/client'
 import { useUI } from '@/components/ui/UIProvider'
 import { formatCOP } from '@/lib/format'
 import { buildCsv, downloadCsv } from '@/lib/csv'
-import { bogotaMonthRange, bogotaDayStartISO, bogotaDayEndISO } from '@/lib/dates'
+import { bogotaDayStartISO, bogotaDayEndISO } from '@/lib/dates'
 
-interface SvcRow {
+export interface SvcRow {
   cleaner_id: string
   turno: string | null
   recargo_dominical: boolean | null
   cleaners?: { full_name?: string } | null
 }
 interface Rates { manana: number; tarde: number; dia_completo: number; recargo: number }
+
+interface Props {
+  /** Semilla del servidor (mes en curso): pinta sin spinner ni round-trip. */
+  initialRange: { from: string; to: string }
+  initialServices: SvcRow[]
+}
 
 const RATES_KEY = 'amaru.payroll.rates'
 const ZERO: Rates = { manana: 0, tarde: 0, dia_completo: 0, recargo: 0 }
@@ -22,12 +28,12 @@ const ZERO: Rates = { manana: 0, tarde: 0, dia_completo: 0, recargo: 0 }
  *  + recargo dominical), persistidas en el navegador, y el sistema cuenta los
  *  servicios completados por auxiliar y turno en el periodo para calcular el pago.
  *  Conecta Auxiliares + Servicios. Sin tarifas inventadas ni cambios de esquema. */
-export default function PayrollReport() {
+export default function PayrollReport({ initialRange, initialServices }: Props) {
   const supabase = createClient()
   const { toast } = useUI()
-  const [range, setRange] = useState(() => bogotaMonthRange())
-  const [rows, setRows] = useState<SvcRow[]>([])
-  const [loading, setLoading] = useState(true)
+  const [range, setRange] = useState(initialRange)
+  const [rows, setRows] = useState<SvcRow[]>(initialServices)
+  const [loading, setLoading] = useState(false)
   const [rates, setRates] = useState<Rates>(ZERO)
 
   // Cargar tarifas guardadas (solo cliente).
@@ -56,8 +62,6 @@ export default function PayrollReport() {
     setRows((data as SvcRow[]) ?? [])
     setLoading(false)
   }
-
-  useEffect(() => { load(range.from, range.to) }, []) // eslint-disable-line react-hooks/exhaustive-deps
 
   const porAuxiliar = useMemo(() => {
     const map = new Map<string, { name: string; manana: number; tarde: number; dia: number; sinTurno: number; dominical: number }>()

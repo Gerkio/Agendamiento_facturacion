@@ -1,16 +1,10 @@
-import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
+import { requireAdmin } from '@/lib/auth'
 import InvoicesView from '@/components/invoices/InvoicesView'
 import { getEmisorConfig } from '@/lib/dian/emisor-config'
 import type { Invoice, CreditNote } from '@/types/database'
 
 export default async function InvoicesPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/auth/login')
-
-  const { data: profile } = await supabase.from('user_profiles').select('role').eq('id', user.id).single()
-  if (profile?.role !== 'admin') redirect('/dashboard')
+  const supabase = await requireAdmin()
 
   // Se omiten columnas pesadas no usadas en la pantalla: `xml_content` (XML UBL
   // firmado, decenas de KB por factura/nota). El documento gráfico recarga sus

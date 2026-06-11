@@ -1,15 +1,9 @@
-import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
+import { requireAdmin } from '@/lib/auth'
 import ServicesHistory from '@/components/history/ServicesHistory'
 import type { Service } from '@/types/database'
 
 export default async function HistoryPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/auth/login')
-
-  const { data: profile } = await supabase.from('user_profiles').select('role').eq('id', user.id).single()
-  if (profile?.role !== 'admin') redirect('/dashboard')
+  const supabase = await requireAdmin()
 
   // Historial global de servicios + listas para los filtros. Se acota a los 2000
   // más recientes (suficiente para el histórico operativo; el filtro por fecha

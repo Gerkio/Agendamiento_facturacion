@@ -1,5 +1,5 @@
-import { createClient } from '@/lib/supabase/server'
-import { redirect, notFound } from 'next/navigation'
+import { notFound } from 'next/navigation'
+import { requireAdmin } from '@/lib/auth'
 import ClientDetail from '@/components/clients/ClientDetail'
 import ClientServicesTab from '@/components/clients/ClientServicesTab'
 import ClientPaymentsTab from '@/components/clients/ClientPaymentsTab'
@@ -11,11 +11,7 @@ export default async function ClientDetailPage({ params }: { params: Promise<{ i
   const { id } = await params
   if (!isUuid(id)) notFound()
 
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/auth/login')
-  const { data: profile } = await supabase.from('user_profiles').select('role').eq('id', user.id).single()
-  if (profile?.role !== 'admin') redirect('/dashboard')
+  const supabase = await requireAdmin()
 
   const { data: client } = await supabase.from('clients').select('*').eq('id', id).single()
   if (!client) notFound()

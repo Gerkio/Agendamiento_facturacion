@@ -1,14 +1,8 @@
-import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
+import { requireAdmin } from '@/lib/auth'
 import DebugDianPanel from '@/components/debug/DebugDianPanel'
 
 export default async function DebugPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/auth/login')
-
-  const { data: profile } = await supabase.from('user_profiles').select('role').eq('id', user.id).single()
-  if (profile?.role !== 'admin') redirect('/dashboard')
+  await requireAdmin()
 
   return (
     <div>

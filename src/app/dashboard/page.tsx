@@ -1,5 +1,5 @@
-import { createClient } from '@/lib/supabase/server'
 import { redirect } from 'next/navigation'
+import { getAuth } from '@/lib/auth'
 import AgendaMatrix from '@/components/calendar/AgendaMatrix'
 import DashboardKpis from '@/components/dashboard/DashboardKpis'
 import { bogotaNow, bogotaDayOf } from '@/lib/dates'
@@ -20,18 +20,10 @@ function currentBogotaPeriods() {
 }
 
 export default async function DashboardPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
+  // Auth compartida por request: el layout ya resolvió sesión y perfil.
+  const { supabase, user, role, cleanerId } = await getAuth()
   if (!user) redirect('/auth/login')
 
-  const { data: profile } = await supabase
-    .from('user_profiles')
-    .select('role, cleaner_id')
-    .eq('id', user.id)
-    .single()
-
-  const role = profile?.role ?? 'cleaner'
-  const cleanerId = profile?.cleaner_id ?? null
   const isAdmin = role === 'admin'
 
   // Filas de la matriz = auxiliares (admin: todos los activos; limpiador: solo él).

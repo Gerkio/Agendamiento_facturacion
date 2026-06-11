@@ -1,5 +1,4 @@
-import { createClient } from '@/lib/supabase/server'
-import { redirect } from 'next/navigation'
+import { requireAdmin } from '@/lib/auth'
 
 interface AuditRow {
   id: string
@@ -34,12 +33,7 @@ const RESULT: Record<string, { label: string; cls: string }> = {
  *  con su usuario, resultado y hash). Conecta Usuarios + Facturación con la capa de
  *  seguridad. La tabla ya existe; aquí se hace visible. Solo admin (RLS + guard). */
 export default async function AuditPage() {
-  const supabase = await createClient()
-  const { data: { user } } = await supabase.auth.getUser()
-  if (!user) redirect('/auth/login')
-
-  const { data: profile } = await supabase.from('user_profiles').select('role').eq('id', user.id).single()
-  if (profile?.role !== 'admin') redirect('/dashboard')
+  const supabase = await requireAdmin()
 
   const { data } = await supabase
     .from('audit_log')
