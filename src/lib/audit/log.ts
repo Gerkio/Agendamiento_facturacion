@@ -17,6 +17,8 @@ export type AuditAction =
   | 'client_photo_updated'
   | 'password_reset'
   | 'admin_created'
+  | 'admin_profile_updated'
+  | 'admin_photo_updated'
   | 'role_changed'
 
 export type AuditResult = 'success' | 'warning' | 'failure'

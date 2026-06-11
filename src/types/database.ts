@@ -174,4 +174,7 @@ export interface UserProfile {
   role: UserRole
   cleaner_id: string | null
   must_change_password: boolean
+  /** Perfil de administrador (los auxiliares llevan nombre/foto en cleaners). */
+  full_name?: string | null
+  photo_url?: string | null
 }
