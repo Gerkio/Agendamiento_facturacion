@@ -12,33 +12,89 @@ interface SidebarProps {
   pendingNovedades?: number
 }
 
-const adminLinks = [
-  { href: '/dashboard', label: 'Agenda', icon: '📅' },
-  { href: '/dashboard/cleaners', label: 'Auxiliares', icon: '🧹' },
-  { href: '/dashboard/clients', label: 'Clientes', icon: '🏢' },
-  { href: '/dashboard/services', label: 'Servicios', icon: '🧰' },
-  { href: '/dashboard/novedades', label: 'Novedades', icon: '📋' },
-  { href: '/dashboard/invoices', label: 'Facturación', icon: '🧾' },
-  { href: '/dashboard/receivables', label: 'Cartera', icon: '💳' },
-  { href: '/dashboard/history', label: 'Historial', icon: '🗂️' },
-  { href: '/dashboard/reports', label: 'Reportes', icon: '📊' },
-  { href: '/dashboard/payroll', label: 'Liquidación', icon: '💵' },
-  { href: '/dashboard/users', label: 'Usuarios', icon: '👥' },
-  { href: '/dashboard/audit', label: 'Auditoría', icon: '🔒' },
-  { href: '/dashboard/debug', label: 'Debug DIAN', icon: '🔧' },
+interface NavLink { href: string; label: string; icon: string }
+interface NavGroup { id: string; label: string; links: NavLink[] }
+
+/** Acceso directo principal (fuera de los grupos): la herramienta más usada. */
+const AGENDA: NavLink = { href: '/dashboard', label: 'Agenda', icon: '📅' }
+
+/** Menú admin agrupado por segmentos (colapsables). */
+const ADMIN_GROUPS: NavGroup[] = [
+  {
+    id: 'operacion', label: 'Operación', links: [
+      { href: '/dashboard/clients', label: 'Clientes', icon: '🏢' },
+      { href: '/dashboard/services', label: 'Servicios', icon: '🧰' },
+      { href: '/dashboard/history', label: 'Historial', icon: '🗂️' },
+    ],
+  },
+  {
+    id: 'equipo', label: 'Equipo', links: [
+      { href: '/dashboard/cleaners', label: 'Auxiliares', icon: '🧹' },
+      { href: '/dashboard/novedades', label: 'Novedades', icon: '📋' },
+      { href: '/dashboard/payroll', label: 'Liquidación', icon: '💵' },
+    ],
+  },
+  {
+    id: 'finanzas', label: 'Finanzas', links: [
+      { href: '/dashboard/invoices', label: 'Facturación', icon: '🧾' },
+      { href: '/dashboard/receivables', label: 'Cartera', icon: '💳' },
+      { href: '/dashboard/reports', label: 'Reportes', icon: '📊' },
+    ],
+  },
+  {
+    id: 'sistema', label: 'Sistema', links: [
+      { href: '/dashboard/users', label: 'Usuarios', icon: '👥' },
+      { href: '/dashboard/audit', label: 'Auditoría', icon: '🔒' },
+      { href: '/dashboard/debug', label: 'Debug DIAN', icon: '🔧' },
+    ],
+  },
 ]
 
-const cleanerLinks = [
-  { href: '/dashboard', label: 'Mi Calendario', icon: '📅' },
-]
+const isActive = (pathname: string, href: string) =>
+  pathname === href || (href !== '/dashboard' && pathname.startsWith(href))
+
+/** Grupo que contiene la ruta actual (para abrirlo por defecto). */
+const groupOf = (pathname: string) =>
+  ADMIN_GROUPS.find(g => g.links.some(l => isActive(pathname, l.href)))?.id ?? null
+
+function NavItem({ link, pathname, badge = 0, nested = false }: {
+  link: NavLink; pathname: string; badge?: number; nested?: boolean
+}) {
+  const active = isActive(pathname, link.href)
+  return (
+    <Link
+      href={link.href}
+      aria-current={active ? 'page' : undefined}
+      className={`flex items-center gap-3 px-3 py-2 rounded-lg text-base transition ${nested ? 'ml-3' : ''} ${active ? 'bg-brand-600 text-white font-semibold' : 'text-gray-700 hover:bg-gray-100'}`}
+    >
+      <span className="text-lg" aria-hidden="true">{link.icon}</span>
+      <span className="flex-1">{link.label}</span>
+      {badge > 0 && (
+        <span className={`text-xs font-bold rounded-full px-2 py-0.5 ${active ? 'bg-white text-brand-700' : 'bg-red-600 text-white'}`}>{badge}</span>
+      )}
+    </Link>
+  )
+}
 
 export default function Sidebar({ role, userEmail, pendingNovedades = 0 }: SidebarProps) {
   const pathname = usePathname()
-  const links = role === 'admin' ? adminLinks : cleanerLinks
   const [open, setOpen] = useState(false)
+  // Abierto por defecto: el grupo de la ruta activa (estable entre SSR y cliente).
+  const [openGroups, setOpenGroups] = useState<Record<string, boolean>>(() => {
+    const g = groupOf(pathname)
+    return g ? { [g]: true } : {}
+  })
 
-  // Cerrar el menú al navegar (en móvil).
-  useEffect(() => { setOpen(false) }, [pathname])
+  // Al navegar: cerrar el drawer (móvil) y asegurar visible el grupo activo.
+  useEffect(() => {
+    setOpen(false)
+    const g = groupOf(pathname)
+    if (g) setOpenGroups(prev => (prev[g] ? prev : { ...prev, [g]: true }))
+  }, [pathname])
+
+  const toggleGroup = (id: string) => setOpenGroups(prev => ({ ...prev, [id]: !prev[id] }))
+
+  const badgeOf = (href: string) => (href === '/dashboard/novedades' ? pendingNovedades : 0)
 
   return (
     <>
@@ -75,25 +131,46 @@ export default function Sidebar({ role, userEmail, pendingNovedades = 0 }: Sideb
             </span>
           </div>
         </div>
+
         <nav className="flex-1 p-3 space-y-1 overflow-y-auto" aria-label="Menú principal">
-          {links.map(link => {
-            const active = pathname === link.href || (link.href !== '/dashboard' && pathname.startsWith(link.href))
-            return (
-              <Link
-                key={link.href}
-                href={link.href}
-                aria-current={active ? 'page' : undefined}
-                className={`flex items-center gap-3 px-3 py-2.5 rounded-lg text-base transition ${active ? 'bg-brand-600 text-white font-semibold' : 'text-gray-700 hover:bg-gray-100'}`}
-              >
-                <span className="text-lg" aria-hidden="true">{link.icon}</span>
-                <span className="flex-1">{link.label}</span>
-                {link.href === '/dashboard/novedades' && pendingNovedades > 0 && (
-                  <span className={`text-xs font-bold rounded-full px-2 py-0.5 ${active ? 'bg-white text-brand-700' : 'bg-red-600 text-white'}`}>{pendingNovedades}</span>
-                )}
-              </Link>
-            )
-          })}
+          {role !== 'admin' ? (
+            <NavItem link={{ href: '/dashboard', label: 'Mi Calendario', icon: '📅' }} pathname={pathname} />
+          ) : (
+            <>
+              <NavItem link={AGENDA} pathname={pathname} />
+
+              {ADMIN_GROUPS.map(group => {
+                const expanded = !!openGroups[group.id]
+                const containsActive = group.links.some(l => isActive(pathname, l.href))
+                const groupBadge = expanded ? 0 : group.links.reduce((s, l) => s + badgeOf(l.href), 0)
+                return (
+                  <div key={group.id} className="pt-1">
+                    <button
+                      type="button"
+                      onClick={() => toggleGroup(group.id)}
+                      aria-expanded={expanded ? 'true' : 'false'}
+                      className={`w-full flex items-center gap-2 px-3 py-1.5 rounded-lg text-xs font-semibold uppercase tracking-wide transition ${containsActive && !expanded ? 'text-brand-700 bg-brand-50' : 'text-gray-500 hover:bg-gray-50 hover:text-gray-700'}`}
+                    >
+                      <span className={`text-[10px] transition-transform ${expanded ? 'rotate-90' : ''}`} aria-hidden="true">▶</span>
+                      <span className="flex-1 text-left">{group.label}</span>
+                      {groupBadge > 0 && (
+                        <span className="text-xs font-bold rounded-full px-1.5 py-0.5 bg-red-600 text-white normal-case">{groupBadge}</span>
+                      )}
+                    </button>
+                    {expanded && (
+                      <div className="mt-0.5 space-y-0.5 border-l border-gray-200 ml-4">
+                        {group.links.map(link => (
+                          <NavItem key={link.href} link={link} pathname={pathname} badge={badgeOf(link.href)} nested />
+                        ))}
+                      </div>
+                    )}
+                  </div>
+                )
+              })}
+            </>
+          )}
         </nav>
+
         <div className="p-3 border-t border-gray-100 space-y-1">
           <Link
             href="/auth/change-password"
