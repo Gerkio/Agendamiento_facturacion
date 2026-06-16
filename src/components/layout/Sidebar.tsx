@@ -25,6 +25,7 @@ const ADMIN_GROUPS: NavGroup[] = [
       { href: '/dashboard/clients', label: 'Clientes', icon: '🏢' },
       { href: '/dashboard/services', label: 'Servicios', icon: '🧰' },
       { href: '/dashboard/history', label: 'Historial', icon: '🗂️' },
+      { href: '/dashboard/warranties', label: 'Garantías', icon: '🛡️' },
     ],
   },
   {

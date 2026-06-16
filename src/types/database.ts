@@ -119,6 +119,10 @@ export interface Service {
   recargo_dominical?: boolean | null
   /** Forma de pago de este servicio (default tomado del cliente). */
   forma_pago?: string | null
+  /** Garantía: servicio original reclamado, motivo y notas. */
+  original_service_id?: string | null
+  warranty_reason?: string | null
+  warranty_notes?: string | null
   created_at: string
   clients?: Client
   cleaners?: Cleaner

@@ -30,6 +30,16 @@ export const tipoToTurno = (tipo: string): string =>
 /** Clasificación operativa del servicio (campo "Tipo" de la referencia). */
 export const SERVICE_CLASSES = ['Normal', 'Garantía', 'Obsequio', 'Reinducción', 'Dominical']
 
+/** Motivos de un re-aseo en garantía (servicio repetido sin cobro por reclamo). */
+export const WARRANTY_REASONS = [
+  { value: 'mala_calidad', label: 'Mala calidad' },
+  { value: 'area_faltante', label: 'Faltó un área' },
+  { value: 'queja_cliente', label: 'Queja del cliente' },
+  { value: 'dano', label: 'Daño' },
+  { value: 'otro', label: 'Otro' },
+]
+export const warrantyReasonLabel = (v?: string | null) => WARRANTY_REASONS.find(r => r.value === v)?.label ?? '—'
+
 /** Formas de pago frecuentes (la del cliente se usa como valor por defecto). */
 export const FORMA_PAGO_OPTIONS = ['Contado', 'Crédito 5 días', 'Crédito 8 días', 'Crédito 15 días', 'Crédito 30 días']
 

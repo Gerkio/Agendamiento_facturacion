@@ -11,7 +11,7 @@ import { buildAuxiliarAppointmentMessage, buildClientReminderMessage } from '@/l
 import { formatCOP, fmtDate } from '@/lib/format'
 import {
   SEGMENTS, hhmm, scheduleLabel, addMinutesToTime, formatDuration,
-  TURNOS, turnoLabel, tipoToTurno, SERVICE_CLASSES, FORMA_PAGO_OPTIONS,
+  TURNOS, turnoLabel, tipoToTurno, SERVICE_CLASSES, FORMA_PAGO_OPTIONS, WARRANTY_REASONS,
 } from '@/lib/service-catalog'
 import type { Service, Client, Cleaner, ServiceCatalog, Novedad } from '@/types/database'
 
@@ -74,6 +74,9 @@ export default function ServiceModal({ service, isNew, defaultStart, services, c
     obs_auxiliar: service?.obs_auxiliar ?? '',
     obs_internas: service?.obs_internas ?? '',
     catalog_id: service?.catalog_id ?? '',
+    original_service_id: service?.original_service_id ?? '',
+    warranty_reason: service?.warranty_reason ?? '',
+    warranty_notes: service?.warranty_notes ?? '',
   })
 
   const [showHoja, setShowHoja] = useState(false)
@@ -186,6 +189,15 @@ export default function ServiceModal({ service, isNew, defaultStart, services, c
     return null
   }, [form.cleaner_id, form.date, form.entrada, form.salida, services, service?.id])
 
+  const isWarranty = form.service_class === 'Garantía'
+  // Servicios previos del mismo cliente (no garantías) como posible original reclamado.
+  const originalOptions = useMemo(
+    () => services
+      .filter(s => s.client_id === form.client_id && s.id !== service?.id && s.service_class !== 'Garantía')
+      .sort((a, b) => +new Date(b.start_time) - +new Date(a.start_time)),
+    [services, form.client_id, service?.id],
+  )
+
   function commonFields() {
     return {
       service_type: form.service_type || null,
@@ -196,6 +208,10 @@ export default function ServiceModal({ service, isNew, defaultStart, services, c
       catalog_id: form.catalog_id || null,
       obs_auxiliar: form.obs_auxiliar || null,
       obs_internas: form.obs_internas || null,
+      // Garantía: solo se guardan si la clase es Garantía; si no, se limpian.
+      original_service_id: isWarranty ? (form.original_service_id || null) : null,
+      warranty_reason: isWarranty ? (form.warranty_reason || null) : null,
+      warranty_notes: isWarranty ? (form.warranty_notes || null) : null,
     }
   }
 
@@ -421,6 +437,37 @@ export default function ServiceModal({ service, isNew, defaultStart, services, c
               ))}
             </div>
           </div>
+
+          {/* Garantía: servicio original reclamado + causa (re-aseo sin cobro) */}
+          {isWarranty && (
+            <div className="md:col-span-2 bg-amber-50 border border-amber-200 rounded-lg p-3 space-y-3">
+              <p className="text-sm font-semibold text-amber-800">🛡️ Garantía (re-aseo por reclamo)</p>
+              <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Servicio original (reclamado)</label>
+                  <select title="Servicio original" value={form.original_service_id} onChange={e => set('original_service_id', e.target.value)} className={input}>
+                    <option value="">— Sin vincular —</option>
+                    {originalOptions.map(s => (
+                      <option key={s.id} value={s.id}>{new Date(s.start_time).toLocaleDateString('es-CO')} · {s.service_type || 'Servicio'}</option>
+                    ))}
+                  </select>
+                  {!form.client_id && <p className="text-xs text-gray-500 mt-1">Elige primero el cliente para ver sus servicios.</p>}
+                </div>
+                <div>
+                  <label className="block text-xs font-medium text-gray-600 mb-1">Motivo del reclamo</label>
+                  <select title="Motivo del reclamo" value={form.warranty_reason} onChange={e => set('warranty_reason', e.target.value)} className={input}>
+                    <option value="">— Sin especificar —</option>
+                    {WARRANTY_REASONS.map(r => <option key={r.value} value={r.value}>{r.label}</option>)}
+                  </select>
+                </div>
+              </div>
+              <div>
+                <label className="block text-xs font-medium text-gray-600 mb-1">Notas de la garantía</label>
+                <textarea value={form.warranty_notes} onChange={e => set('warranty_notes', e.target.value)} rows={2} className={input + ' resize-none'} placeholder="Detalle del reclamo / qué se rehará" />
+              </div>
+              <p className="text-xs text-amber-700">Una garantía no se cobra: deja el valor del servicio en 0.</p>
+            </div>
+          )}
 
           {/* Recargo + Forma de pago */}
           <div>
