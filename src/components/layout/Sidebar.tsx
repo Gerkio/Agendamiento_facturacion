@@ -43,6 +43,7 @@ const ADMIN_GROUPS: NavGroup[] = [
     id: 'finanzas', label: 'Finanzas', links: [
       { href: '/dashboard/invoices', label: 'Facturación', icon: '🧾' },
       { href: '/dashboard/receivables', label: 'Cartera', icon: '💳' },
+      { href: '/dashboard/receipts', label: 'Recibos', icon: '🪙' },
       { href: '/dashboard/expenses', label: 'Gastos', icon: '💸' },
       { href: '/dashboard/reports', label: 'Reportes', icon: '📊' },
     ],

@@ -172,6 +172,23 @@ export interface Novedad {
 
 export type PaymentStatus = 'pendiente' | 'pagado'
 
+export type ReceiptStatus = 'activo' | 'anulado'
+
+export interface PaymentReceipt {
+  id: string
+  receipt_number: string | null
+  client_id: string
+  issue_date: string
+  total_amount: number
+  method?: string | null
+  note?: string | null
+  status: ReceiptStatus
+  reversal_reason?: string | null
+  reversed_at?: string | null
+  created_at: string
+  clients?: { company_name?: string } | null
+}
+
 export interface ExpenseCategory {
   id: string
   name: string
