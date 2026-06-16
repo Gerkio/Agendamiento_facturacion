@@ -36,6 +36,7 @@ const ADMIN_GROUPS: NavGroup[] = [
       { href: '/dashboard/cleaners', label: 'Auxiliares', icon: '🧹' },
       { href: '/dashboard/novedades', label: 'Novedades', icon: '📋' },
       { href: '/dashboard/peticiones', label: 'Peticiones', icon: '🙋' },
+      { href: '/dashboard/nomina', label: 'Nómina', icon: '🧮' },
       { href: '/dashboard/payroll', label: 'Liquidación', icon: '💵' },
     ],
   },

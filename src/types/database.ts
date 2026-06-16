@@ -16,7 +16,101 @@ export interface Cleaner {
   eps?: string | null
   arl?: string | null
   hire_date?: string | null
+  /** Contrato laboral (nómina). */
+  contract_type?: string | null
+  salary_type?: string | null
+  base_salary?: number | null
+  has_transport_allowance?: boolean | null
+  arl_risk_level?: string | null
+  payment_periodicity?: string | null
+  afp_code?: string | null
+  ccf_code?: string | null
+  bank_name?: string | null
+  bank_account_type?: string | null
+  bank_account_number?: string | null
+  contract_start?: string | null
+  contract_end?: string | null
   created_at: string
+}
+
+export interface PayrollParameters {
+  id: string
+  year: number
+  smmlv: number
+  transport_allowance: number
+  health_employer: number
+  health_employee: number
+  pension_employer: number
+  pension_employee: number
+  ccf_rate: number
+  icbf_rate: number
+  sena_rate: number
+  cesantias_rate: number
+  intereses_cesantias_rate: number
+  prima_rate: number
+  vacaciones_rate: number
+  ibc_min_smmlv: number
+  ibc_max_smmlv: number
+  transport_max_smmlv: number
+  exoneration_threshold_smmlv: number
+  fsp_min_smmlv: number
+  fsp_brackets: { from: number; to: number; rate: number }[]
+  arl_rates: Record<string, number>
+  exoneration_eligible: boolean
+  verified_by_accountant: boolean
+  is_locked: boolean
+  notes?: string | null
+  created_at: string
+}
+
+export interface PayrollRun {
+  id: string
+  cod: string | null
+  year: number
+  month: number
+  period_kind: string
+  status: string
+  total_devengado: number
+  total_deducciones: number
+  total_neto: number
+  total_aportes_patronales: number
+  total_provisiones: number
+  costo_total_empleador: number
+  created_at: string
+}
+
+export interface PayrollItem {
+  id: string
+  run_id: string
+  cleaner_id: string
+  base_salary: number
+  salary_type: string
+  arl_risk_level: string
+  ibc: number
+  worked_days: number
+  salary_earned: number
+  transport_allowance: number
+  total_devengado: number
+  health_employee: number
+  pension_employee: number
+  fsp: number
+  total_deducciones: number
+  neto_pagar: number
+  health_employer: number
+  pension_employer: number
+  arl: number
+  ccf: number
+  icbf: number
+  sena: number
+  exonerated: boolean
+  prov_cesantias: number
+  prov_intereses: number
+  prov_prima: number
+  prov_vacaciones: number
+  total_provisiones: number
+  costo_empleador: number
+  created_at: string
+  cleaners?: { full_name?: string; document_id?: string } | null
 }
 
 export interface Client {
