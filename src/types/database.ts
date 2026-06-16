@@ -166,6 +166,36 @@ export interface Novedad {
   cleaners?: Cleaner
 }
 
+export type PaymentStatus = 'pendiente' | 'pagado'
+
+export interface ExpenseCategory {
+  id: string
+  name: string
+  puc_code?: string | null
+  is_active: boolean
+  created_at: string
+}
+
+export interface Expense {
+  id: string
+  expense_date: string
+  category_id: string | null
+  supplier_name?: string | null
+  cost_center?: string | null
+  description?: string | null
+  base_amount: number
+  iva_amount: number
+  total_amount: number
+  payment_method?: string | null
+  payment_status: PaymentStatus
+  support_path?: string | null
+  support_type?: string | null
+  created_by?: string | null
+  created_at: string
+  /** Categoría embebida (join). */
+  expense_categories?: { name?: string } | null
+}
+
 export type UserRole = 'admin' | 'cleaner'
 
 export interface UserProfile {

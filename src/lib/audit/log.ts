@@ -19,6 +19,7 @@ export type AuditAction =
   | 'admin_created'
   | 'admin_profile_updated'
   | 'admin_photo_updated'
+  | 'expense_receipt_updated'
   | 'role_changed'
 
 export type AuditResult = 'success' | 'warning' | 'failure'
