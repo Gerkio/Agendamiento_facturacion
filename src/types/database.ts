@@ -200,6 +200,25 @@ export interface Expense {
   expense_categories?: { name?: string } | null
 }
 
+export type PeticionStatus = 'pendiente' | 'aprobada' | 'rechazada' | 'resuelta'
+
+export interface Peticion {
+  id: string
+  cleaner_id: string
+  cod: string | null
+  type: string
+  subject: string
+  description?: string | null
+  amount_cop?: number | null
+  status: PeticionStatus
+  requested_by?: string | null
+  decided_by?: string | null
+  decided_at?: string | null
+  resolution_note?: string | null
+  created_at: string
+  cleaners?: { full_name?: string } | null
+}
+
 export type PqrStatus = 'radicada' | 'en_tramite' | 'respondida' | 'cerrada' | 'desistida'
 
 export interface PqrEvent {

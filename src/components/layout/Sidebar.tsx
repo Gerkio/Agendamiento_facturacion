@@ -11,6 +11,7 @@ interface SidebarProps {
   userEmail: string
   pendingNovedades?: number
   pendingPqr?: number
+  pendingPeticiones?: number
 }
 
 interface NavLink { href: string; label: string; icon: string }
@@ -34,6 +35,7 @@ const ADMIN_GROUPS: NavGroup[] = [
     id: 'equipo', label: 'Equipo', links: [
       { href: '/dashboard/cleaners', label: 'Auxiliares', icon: '🧹' },
       { href: '/dashboard/novedades', label: 'Novedades', icon: '📋' },
+      { href: '/dashboard/peticiones', label: 'Peticiones', icon: '🙋' },
       { href: '/dashboard/payroll', label: 'Liquidación', icon: '💵' },
     ],
   },
@@ -80,7 +82,7 @@ function NavItem({ link, pathname, badge = 0, nested = false }: {
   )
 }
 
-export default function Sidebar({ role, userEmail, pendingNovedades = 0, pendingPqr = 0 }: SidebarProps) {
+export default function Sidebar({ role, userEmail, pendingNovedades = 0, pendingPqr = 0, pendingPeticiones = 0 }: SidebarProps) {
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
   // Abierto por defecto: el grupo de la ruta activa (estable entre SSR y cliente).
@@ -99,7 +101,9 @@ export default function Sidebar({ role, userEmail, pendingNovedades = 0, pending
   const toggleGroup = (id: string) => setOpenGroups(prev => ({ ...prev, [id]: !prev[id] }))
 
   const badgeOf = (href: string) =>
-    href === '/dashboard/novedades' ? pendingNovedades : href === '/dashboard/pqr' ? pendingPqr : 0
+    href === '/dashboard/novedades' ? pendingNovedades
+      : href === '/dashboard/pqr' ? pendingPqr
+        : href === '/dashboard/peticiones' ? pendingPeticiones : 0
 
   return (
     <>
@@ -139,7 +143,10 @@ export default function Sidebar({ role, userEmail, pendingNovedades = 0, pending
 
         <nav className="flex-1 p-3 space-y-1 overflow-y-auto" aria-label="Menú principal">
           {role !== 'admin' ? (
-            <NavItem link={{ href: '/dashboard', label: 'Mi Calendario', icon: '📅' }} pathname={pathname} />
+            <>
+              <NavItem link={{ href: '/dashboard', label: 'Mi Calendario', icon: '📅' }} pathname={pathname} />
+              <NavItem link={{ href: '/dashboard/peticiones', label: 'Mis peticiones', icon: '🙋' }} pathname={pathname} />
+            </>
           ) : (
             <>
               <NavItem link={AGENDA} pathname={pathname} />
