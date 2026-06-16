@@ -200,6 +200,41 @@ export interface Expense {
   expense_categories?: { name?: string } | null
 }
 
+export type PqrStatus = 'radicada' | 'en_tramite' | 'respondida' | 'cerrada' | 'desistida'
+
+export interface PqrEvent {
+  id: string
+  pqr_id: string
+  action: string
+  note?: string | null
+  actor_email?: string | null
+  created_at: string
+}
+
+export interface Pqr {
+  id: string
+  radicado: string | null
+  tipo: string
+  canal?: string | null
+  client_id?: string | null
+  service_id?: string | null
+  petitioner_name?: string | null
+  petitioner_contact?: string | null
+  subject: string
+  description?: string | null
+  status: PqrStatus
+  priority: string
+  responsible?: string | null
+  received_at: string
+  due_date?: string | null
+  response_text?: string | null
+  responded_at?: string | null
+  closed_at?: string | null
+  created_at: string
+  clients?: { company_name?: string } | null
+  pqr_events?: PqrEvent[]
+}
+
 export type UserRole = 'admin' | 'cleaner'
 
 export interface UserProfile {

@@ -10,6 +10,7 @@ interface SidebarProps {
   role: UserRole
   userEmail: string
   pendingNovedades?: number
+  pendingPqr?: number
 }
 
 interface NavLink { href: string; label: string; icon: string }
@@ -26,6 +27,7 @@ const ADMIN_GROUPS: NavGroup[] = [
       { href: '/dashboard/services', label: 'Servicios', icon: '🧰' },
       { href: '/dashboard/history', label: 'Historial', icon: '🗂️' },
       { href: '/dashboard/warranties', label: 'Garantías', icon: '🛡️' },
+      { href: '/dashboard/pqr', label: 'PQR', icon: '📨' },
     ],
   },
   {
@@ -78,7 +80,7 @@ function NavItem({ link, pathname, badge = 0, nested = false }: {
   )
 }
 
-export default function Sidebar({ role, userEmail, pendingNovedades = 0 }: SidebarProps) {
+export default function Sidebar({ role, userEmail, pendingNovedades = 0, pendingPqr = 0 }: SidebarProps) {
   const pathname = usePathname()
   const [open, setOpen] = useState(false)
   // Abierto por defecto: el grupo de la ruta activa (estable entre SSR y cliente).
@@ -96,7 +98,8 @@ export default function Sidebar({ role, userEmail, pendingNovedades = 0 }: Sideb
 
   const toggleGroup = (id: string) => setOpenGroups(prev => ({ ...prev, [id]: !prev[id] }))
 
-  const badgeOf = (href: string) => (href === '/dashboard/novedades' ? pendingNovedades : 0)
+  const badgeOf = (href: string) =>
+    href === '/dashboard/novedades' ? pendingNovedades : href === '/dashboard/pqr' ? pendingPqr : 0
 
   return (
     <>
