@@ -33,12 +33,16 @@ export interface InvoiceData {
 
 function pad2(n: number) { return String(n).padStart(2, '0') }
 
+// IssueDate/IssueTime en hora legal de Colombia (UTC-5). Debe coincidir EXACTAMENTE
+// con FecFac/HorFac usados por el CUFE, o la DIAN rechaza por CUFE inconsistente.
 function formatISODate(d: Date) {
-  return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`
+  const co = new Date(d.getTime() - 5 * 3600_000)
+  return `${co.getUTCFullYear()}-${pad2(co.getUTCMonth() + 1)}-${pad2(co.getUTCDate())}`
 }
 
 function formatISOTime(d: Date) {
-  return `${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}-05:00`
+  const co = new Date(d.getTime() - 5 * 3600_000)
+  return `${pad2(co.getUTCHours())}:${pad2(co.getUTCMinutes())}:${pad2(co.getUTCSeconds())}-05:00`
 }
 
 function xmlEscape(s: string) {

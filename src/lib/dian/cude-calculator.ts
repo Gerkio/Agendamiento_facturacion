@@ -26,9 +26,10 @@ export interface CudeInput {
 }
 
 export function calculateCUDE(input: CudeInput): string {
-  const d = input.issueDate
-  const FecNC = `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`
-  const HorNC = `${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}-05:00`
+  // FecNC/HorNC en hora legal de Colombia (UTC-5), igual que el CUFE.
+  const d = new Date(input.issueDate.getTime() - 5 * 3600_000)
+  const FecNC = `${d.getUTCFullYear()}-${pad2(d.getUTCMonth() + 1)}-${pad2(d.getUTCDate())}`
+  const HorNC = `${pad2(d.getUTCHours())}:${pad2(d.getUTCMinutes())}:${pad2(d.getUTCSeconds())}-05:00`
 
   // Decimales TRUNCADOS a 2 (no redondeados), igual que el CUFE.
   const fmt = (n: number) => (Math.floor(Math.abs(n) * 100 + 1e-6) / 100 * Math.sign(n || 1)).toFixed(2)

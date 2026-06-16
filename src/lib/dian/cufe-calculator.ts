@@ -17,9 +17,12 @@ export interface CufeInput {
 }
 
 export function calculateCUFE(input: CufeInput): string {
-  const d = input.issueDate
-  const FecFac = `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}`
-  const HorFac = `${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}-05:00`
+  // FecFac/HorFac en hora LEGAL de Colombia (UTC-5). Se desplaza el instante −5h y se
+  // leen los componentes UTC, de modo que el sello sea correcto aunque el servidor
+  // corra en UTC (Vercel). Esta marca entra al hash, así que el XML usa la misma.
+  const d = new Date(input.issueDate.getTime() - 5 * 3600_000)
+  const FecFac = `${d.getUTCFullYear()}-${pad2(d.getUTCMonth() + 1)}-${pad2(d.getUTCDate())}`
+  const HorFac = `${pad2(d.getUTCHours())}:${pad2(d.getUTCMinutes())}:${pad2(d.getUTCSeconds())}-05:00`
 
   // Anexo Técnico 1.9 (§11.2): decimales TRUNCADOS a 2 dígitos (NO redondeados),
   // punto decimal, sin separador de miles ni símbolo. El +1e-6 evita el error de

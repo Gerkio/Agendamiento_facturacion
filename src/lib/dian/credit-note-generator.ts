@@ -14,8 +14,10 @@ function computeSoftwareSecurityCode(docNumber: string): string {
 }
 
 function pad2(n: number) { return String(n).padStart(2, '0') }
-function formatISODate(d: Date) { return `${d.getFullYear()}-${pad2(d.getMonth() + 1)}-${pad2(d.getDate())}` }
-function formatISOTime(d: Date) { return `${pad2(d.getHours())}:${pad2(d.getMinutes())}:${pad2(d.getSeconds())}-05:00` }
+// Hora legal de Colombia (UTC-5); debe coincidir con FecNC/HorNC del CUDE.
+function coShift(d: Date) { return new Date(d.getTime() - 5 * 3600_000) }
+function formatISODate(d: Date) { const c = coShift(d); return `${c.getUTCFullYear()}-${pad2(c.getUTCMonth() + 1)}-${pad2(c.getUTCDate())}` }
+function formatISOTime(d: Date) { const c = coShift(d); return `${pad2(c.getUTCHours())}:${pad2(c.getUTCMinutes())}:${pad2(c.getUTCSeconds())}-05:00` }
 function xmlEscape(s: string) {
   return s.replace(/&/g, '&amp;').replace(/</g, '&lt;').replace(/>/g, '&gt;').replace(/"/g, '&quot;').replace(/'/g, '&apos;')
 }
