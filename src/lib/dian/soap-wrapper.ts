@@ -21,6 +21,12 @@ function addSeconds(seconds: number): string {
   return new Date(Date.now() + seconds * 1000).toISOString().replace(/\.\d{3}Z$/, 'Z')
 }
 
+function computePasswordDigest(nonce: Buffer, created: string, password: string): string {
+  return createHash('sha1')
+    .update(Buffer.concat([nonce, Buffer.from(created, 'utf8'), Buffer.from(password, 'utf8')]))
+    .digest('base64')
+}
+
 /** Zip the XML string and return a base64 string of the ZIP archive */
 function zipXmlToBase64(xmlString: string, fileName: string): string {
   // Build a minimal ZIP archive manually (no extra library needed)
@@ -96,10 +102,10 @@ export function buildSoapEnvelope(opts: SoapOptions): string {
 
   const created = now8601()
   const expires = addSeconds(3600) // 1 hora (3600 s). Antes 60000 s (~16 h), fuera del TTL típico.
-  const nonce = randomBytes(22).toString('base64')
-  const nonceDigest = createHash('sha256')
-    .update(nonce + created, 'utf8')
-    .digest('base64')
+  const nonceBytes = randomBytes(22)
+  const nonce = nonceBytes.toString('base64')
+  const password = process.env.DIAN_SOFTWARE_PIN ?? ''
+  const nonceDigest = computePasswordDigest(nonceBytes, created, password)
 
   return `<?xml version="1.0" encoding="UTF-8"?>
 <soap:Envelope xmlns:soap="http://www.w3.org/2003/05/soap-envelope"

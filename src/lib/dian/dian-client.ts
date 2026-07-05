@@ -3,6 +3,8 @@
  * Sends the SOAP envelope and parses the XML response.
  */
 
+import { DOMParser } from '@xmldom/xmldom'
+
 export interface DianResponse {
   isValid: boolean
   statusCode: string
@@ -41,34 +43,25 @@ export async function sendToDian(
   return parseDianResponse(raw)
 }
 
-// Escapa metacaracteres antes de incrustar un string en una RegExp. Prefiere el
-// RegExp.escape nativo (Node 24) y cae a la versión manual si no está disponible.
-const reEsc = (s: string): string => {
-  const fn = (RegExp as unknown as { escape?: (s: string) => string }).escape
-  return fn ? fn(s) : s.replace(/[.*+?^${}()|[\]\\]/g, '\\$&')
-}
-
-function extractTag(xml: string, tag: string): string {
-  const t = reEsc(tag)
-  const patterns = [
-    new RegExp(`<[^>]*:${t}[^>]*>([\\s\\S]*?)<\/[^>]*:${t}>`, 'i'),
-    new RegExp(`<${t}[^>]*>([\\s\\S]*?)<\/${t}>`, 'i'),
-    new RegExp(`<b:${t}[^>]*>([\\s\\S]*?)<\/b:${t}>`, 'i'),
-  ]
-  for (const p of patterns) {
-    const m = xml.match(p)
-    if (m) return m[1].trim()
+function getElementText(xml: string, localName: string): string {
+  const doc = new DOMParser().parseFromString(xml, 'text/xml')
+  const nodes = doc.getElementsByTagName('*')
+  for (let i = 0; i < nodes.length; i++) {
+    const node = nodes.item(i)
+    if (node?.localName === localName) {
+      return String(node.textContent ?? '').trim()
+    }
   }
   return ''
 }
 
 function parseDianResponse(raw: string): DianResponse {
-  const isValidStr = extractTag(raw, 'IsValid')
+  const isValidStr = getElementText(raw, 'IsValid')
   const isValid = isValidStr.toLowerCase() === 'true'
-  const statusCode = extractTag(raw, 'StatusCode')
-  const statusDescription = extractTag(raw, 'StatusDescription')
-  const statusMessage = extractTag(raw, 'StatusMessage')
-  const cufe = extractTag(raw, 'XmlDocumentKey')
+  const statusCode = getElementText(raw, 'StatusCode')
+  const statusDescription = getElementText(raw, 'StatusDescription')
+  const statusMessage = getElementText(raw, 'StatusMessage')
+  const cufe = getElementText(raw, 'XmlDocumentKey')
 
   return { isValid, statusCode, statusDescription, statusMessage, cufe, raw }
 }
