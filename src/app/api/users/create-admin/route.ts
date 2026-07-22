@@ -5,6 +5,8 @@ import { isSameOrigin } from '@/lib/auth/origin'
 import { CLEANER_EMAIL_DOMAIN } from '@/lib/auth/cleaner-email'
 import { recordAudit } from '@/lib/audit/log'
 import { validatePassword } from '@/lib/auth/password'
+import { rateLimit } from '@/lib/rate-limit'
+import { createLogger, newCorrelationId } from '@/lib/log/logger'
 
 /**
  * Crea un nuevo administrador (correo + contraseña temporal). El usuario nace
@@ -14,6 +16,13 @@ export async function POST(req: NextRequest) {
   if (!isSameOrigin(req)) return NextResponse.json({ error: 'Origen no permitido' }, { status: 403 })
   const auth = await requireAdmin()
   if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status })
+
+  // Rate-limit: crear cuentas de administrador es una operación sensible.
+  const rl = rateLimit(`create-admin:${auth.ctx.userId}`, 10, 60_000)
+  if (!rl.ok) {
+    return NextResponse.json({ error: 'Demasiadas solicitudes; intenta en un momento.' }, { status: 429, headers: { 'Retry-After': String(rl.retryAfterSec) } })
+  }
+  const log = createLogger({ cid: newCorrelationId(), route: 'users/create-admin', actor: auth.ctx.userId })
 
   const { email, password, full_name } = (await req.json()) as { email?: string; password?: string; full_name?: string }
   const mail = email?.trim().toLowerCase() ?? ''
@@ -36,6 +45,7 @@ export async function POST(req: NextRequest) {
   })
   if (createErr || !created?.user) {
     const dup = createErr?.message?.toLowerCase().includes('already')
+    log.warn('createUser falló', { dup: Boolean(dup) })
     return NextResponse.json({ error: dup ? 'Ya existe un usuario con ese correo' : (createErr?.message ?? 'No se pudo crear') }, { status: 400 })
   }
 
@@ -46,9 +56,11 @@ export async function POST(req: NextRequest) {
     .upsert({ id: created.user.id, email: mail, role: 'admin', must_change_password: true, full_name: name })
   if (roleErr) {
     await admin.auth.admin.deleteUser(created.user.id)
+    log.error('no se pudo asignar rol; usuario revertido', { reason: roleErr.message })
     return NextResponse.json({ error: 'No se pudo asignar el rol de administrador: ' + roleErr.message }, { status: 500 })
   }
 
   await recordAudit({ userId: auth.ctx.userId, action: 'admin_created', result: 'success', details: { email: mail } })
+  log.info('administrador creado', { newUserId: created.user.id })
   return NextResponse.json({ ok: true, email: mail }, { status: 201 })
 }

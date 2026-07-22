@@ -5,6 +5,8 @@ import { requireAdmin } from '@/lib/auth/require-admin'
 import { cedulaToEmail } from '@/lib/auth/cleaner-email'
 import { recordAudit } from '@/lib/audit/log'
 import { isSameOrigin } from '@/lib/auth/origin'
+import { rateLimit } from '@/lib/rate-limit'
+import { createLogger, newCorrelationId } from '@/lib/log/logger'
 
 interface Body {
   full_name: string
@@ -17,6 +19,12 @@ export async function POST(req: NextRequest) {
   if (!isSameOrigin(req)) return NextResponse.json({ error: 'Origen no permitido' }, { status: 403 })
   const auth = await requireAdmin()
   if (!auth.ok) return NextResponse.json({ error: auth.error }, { status: auth.status })
+
+  const rl = rateLimit(`cleaner-create:${auth.ctx.userId}`, 20, 60_000)
+  if (!rl.ok) {
+    return NextResponse.json({ error: 'Demasiadas solicitudes; intenta en un momento.' }, { status: 429, headers: { 'Retry-After': String(rl.retryAfterSec) } })
+  }
+  const log = createLogger({ cid: newCorrelationId(), route: 'cleaners/create', actor: auth.ctx.userId })
 
   const body = (await req.json()) as Body
   const fullName = body.full_name?.trim()
@@ -84,6 +92,7 @@ export async function POST(req: NextRequest) {
     // cleaner_id y sin forzar cambio de contraseña (cuenta huérfana).
     await admin.from('cleaners').delete().eq('id', cleaner.id)
     await admin.auth.admin.deleteUser(userId)
+    log.error('no se pudo vincular perfil; usuario y ficha revertidos', { reason: profileErr.message })
     return NextResponse.json(
       { error: 'No se pudo vincular el perfil del limpiador: ' + profileErr.message },
       { status: 500 }
@@ -96,6 +105,7 @@ export async function POST(req: NextRequest) {
     result: 'success',
     details: { cleanerId: cleaner.id, fullName },
   })
+  log.info('limpiador creado', { cleanerId: cleaner.id, userId })
 
   return NextResponse.json({ cleaner, username: cedula, tempPassword }, { status: 201 })
 }
