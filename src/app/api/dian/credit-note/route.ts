@@ -174,7 +174,8 @@ export async function POST(req: NextRequest) {
       .update({
         note_number: noteNumber, cude, xml_content: signedXml,
         dian_response_code: dianResponse.statusCode, dian_response_description: dianResponse.statusDescription,
-        billing_status: dianResponse.isValid ? 'sent_dian' : 'rejected', total_amount: tax.total,
+        billing_status: dianResponse.isValid ? 'sent_dian' : 'rejected',
+        subtotal: tax.taxableBase, tax_amount: tax.taxAmount, total_amount: tax.total,
         qr_content: `${qrBase}/document/searchqr?documentkey=${cude}`,
       })
       .eq('id', note.id)

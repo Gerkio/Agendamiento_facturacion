@@ -13,7 +13,7 @@ export default async function InvoicesPage() {
     supabase.from('clients').select('*').order('company_name'),
     supabase
       .from('invoices')
-      .select('id, client_id, invoice_number, issue_date, total_amount, billing_status, created_at, qr_content, cufe, dian_response_description, clients(company_name, nit_cedula, dv)')
+      .select('id, client_id, invoice_number, issue_date, subtotal, tax_amount, total_amount, billing_status, created_at, qr_content, cufe, dian_response_description, clients(company_name, nit_cedula, dv)')
       .order('created_at', { ascending: false })
       .returns<Invoice[]>(),
     supabase

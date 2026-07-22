@@ -6,7 +6,6 @@ import { createClient } from '@/lib/supabase/client'
 import { useUI } from '@/components/ui/UIProvider'
 import { formatCOP } from '@/lib/format'
 import { billingLabel, billingCls, serviceLabel, serviceCls } from '@/lib/status'
-import { computeTax } from '@/lib/dian/tax'
 import { buildCsv, downloadCsv } from '@/lib/csv'
 import { bogotaDayStartISO, bogotaDayEndISO, bogotaToday } from '@/lib/dates'
 import type { Client, Invoice, Service, CreditNote } from '@/types/database'
@@ -91,9 +90,10 @@ export default function InvoicesView({ clients, invoices: initial, creditNotes: 
     const total = services.reduce((s, x) => s + Number(x.price_cop), 0)
     // El cliente se toma de los servicios buscados (no del dropdown, que pudo cambiar).
     const clientId = services[0].client_id
+    // Borrador: el IVA se calcula al emitir (config del servidor). subtotal = total = base.
     const { data: invoice, error } = await supabase
       .from('invoices')
-      .insert({ client_id: clientId, total_amount: total, billing_status: 'draft' })
+      .insert({ client_id: clientId, subtotal: total, total_amount: total, billing_status: 'draft' })
       .select()
       .single()
     if (error || !invoice) { toast('Error creando factura: ' + error?.message, 'error'); setCreatingInvoice(false); return }
@@ -134,22 +134,21 @@ export default function InvoicesView({ clients, invoices: initial, creditNotes: 
     setSendingDian(null)
   }
 
-  // F4: libro de facturas en CSV para contabilidad. La base es `total_amount`
-  // (suma de los servicios, sin IVA); el IVA y el total se derivan con la tasa
-  // configurada del emisor, igual que la representación gráfica.
+  // F4: libro de facturas en CSV. Usa los importes persistidos (base + IVA + total
+  // con IVA) que quedan tras validar en la DIAN; no recalcula.
   function exportLibro() {
     const headers = ['N° Factura', 'Fecha', 'Cliente', 'NIT', 'Base', 'IVA', 'Total', 'Estado', 'CUFE']
     const rows = invoices.map(inv => {
       const cli = inv.clients as { company_name?: string; nit_cedula?: string; dv?: string } | undefined
-      const { taxableBase, taxAmount, total } = computeTax([Number(inv.total_amount)], emisor.ivaRate)
+      const base = Number(inv.subtotal ?? inv.total_amount)
       return [
         inv.invoice_number ?? 'BORRADOR',
         new Date(inv.issue_date).toLocaleDateString('es-CO'),
         cli?.company_name ?? '',
         cli?.nit_cedula ? `${cli.nit_cedula}${cli.dv ? `-${cli.dv}` : ''}` : '',
-        taxableBase,
-        taxAmount,
-        total,
+        base,
+        Number(inv.tax_amount ?? 0),
+        Number(inv.total_amount),
         billingLabel(inv.billing_status),
         inv.cufe ?? '',
       ]

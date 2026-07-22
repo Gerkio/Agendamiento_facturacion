@@ -165,6 +165,11 @@ export interface Invoice {
   dian_response_code: string | null
   dian_response_description: string | null
   qr_content: string | null
+  /** Base gravable (sin IVA). */
+  subtotal: number
+  /** IVA del documento. */
+  tax_amount: number
+  /** Total a cobrar (base + IVA) tras la validación DIAN. */
   total_amount: number
   billing_status: BillingStatus
   created_at: string
@@ -183,6 +188,8 @@ export interface CreditNote {
   dian_response_code: string | null
   dian_response_description: string | null
   qr_content: string | null
+  subtotal: number
+  tax_amount: number
   total_amount: number
   billing_status: BillingStatus
   created_at: string

@@ -111,7 +111,7 @@ export default function ServicesHistory({ services, cleaners, clients }: Props) 
     setFacturando(s.id)
     const { data: invoice, error } = await supabase
       .from('invoices')
-      .insert({ client_id: s.client_id, total_amount: Number(s.price_cop), billing_status: 'draft' })
+      .insert({ client_id: s.client_id, subtotal: Number(s.price_cop), total_amount: Number(s.price_cop), billing_status: 'draft' })
       .select('id, invoice_number, billing_status')
       .single()
     if (error || !invoice) { toast('Error creando factura: ' + (error?.message ?? 'desconocido'), 'error'); setFacturando(null); return }
@@ -150,7 +150,7 @@ export default function ServicesHistory({ services, cleaners, clients }: Props) 
       const total = group.reduce((s, x) => s + Number(x.price_cop), 0)
       const { data: invoice, error } = await supabase
         .from('invoices')
-        .insert({ client_id: clientId, total_amount: total, billing_status: 'draft' })
+        .insert({ client_id: clientId, subtotal: total, total_amount: total, billing_status: 'draft' })
         .select('id, invoice_number, billing_status')
         .single()
       if (error || !invoice) continue

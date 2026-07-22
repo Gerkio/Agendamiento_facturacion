@@ -204,6 +204,9 @@ export async function POST(req: NextRequest) {
         invoice_number: invoiceNumber,
         cufe,
         xml_content: signedXml,
+        subtotal: taxableBase,
+        tax_amount: taxAmount,
+        total_amount: totalAmount, // total CON IVA (lo que se cobra / concilia cartera)
         dian_response_code: dianResponse.statusCode,
         dian_response_description: dianResponse.statusDescription,
         billing_status: dianResponse.isValid ? 'sent_dian' : 'rejected',
