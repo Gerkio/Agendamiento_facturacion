@@ -198,17 +198,22 @@ function EmitModal({ clients, onClose, onEmitted }: {
     if (!chosen.length) { toast('Selecciona al menos una factura con monto.', 'error'); return }
     for (const i of chosen) if (Number(i.amount) > i.saldo + 0.5) { toast(`El abono a ${i.number} supera su saldo.`, 'error'); return }
     setSaving(true)
-    const { data: receipt, error } = await supabase.from('payment_receipts').insert({ client_id: clientId, total_amount: total, method, note: note || null, issue_date: issueDate }).select('*, clients(company_name)').single()
-    if (error || !receipt) { setSaving(false); toast('No se pudo emitir: ' + (error?.message ?? ''), 'error'); return }
-    const payments = chosen.map(i => ({ invoice_id: i.id, amount: Number(i.amount), paid_at: issueDate, method, note: note || null, receipt_id: receipt.id }))
-    const { error: payErr } = await supabase.from('invoice_payments').insert(payments)
-    if (payErr) {
-      await supabase.from('payment_receipts').delete().eq('id', receipt.id)
-      setSaving(false); toast('No se pudieron registrar los abonos; se canceló el recibo.', 'error'); return
-    }
+    // Emisión atómica en el servidor: cabecera + abonos en una sola transacción
+    // (RPC emit_payment_receipt). El total lo calcula la BD como suma de líneas.
+    const { data: receipt, error } = await supabase.rpc('emit_payment_receipt', {
+      p_client_id: clientId,
+      p_issue_date: issueDate,
+      p_method: method,
+      p_note: note || null,
+      p_items: chosen.map(i => ({ invoice_id: i.id, amount: Number(i.amount) })),
+    })
     setSaving(false)
-    toast(`Recibo ${receipt.receipt_number} emitido.`, 'success')
-    onEmitted(receipt as PaymentReceipt, chosen.map(i => ({ invoice_number: i.number, amount: Number(i.amount) })))
+    if (error || !receipt) { toast('No se pudo emitir: ' + (error?.message ?? ''), 'error'); return }
+    // La RPC devuelve la fila cruda; se adjunta el nombre del cliente (ya conocido)
+    // para la impresión/listado sin un round-trip extra.
+    const withClient = { ...(receipt as PaymentReceipt), clients: { company_name: clients.find(c => c.id === clientId)?.company_name ?? '—' } }
+    toast(`Recibo ${withClient.receipt_number} emitido.`, 'success')
+    onEmitted(withClient, chosen.map(i => ({ invoice_number: i.number, amount: Number(i.amount) })))
   }
 
   const input = 'w-full border border-gray-300 rounded-lg px-3 py-2 text-sm focus:outline-none focus:ring-2 focus:ring-brand-500'
