@@ -30,7 +30,8 @@
     "saxon-js": "^2.7.0",
     "server-only": "^0.0.1",
     "xml-crypto": "^6.1.2",
-    "xmllint-wasm": "^5.2.0"
+    "xmllint-wasm": "^5.2.0",
+    "zod": "^4.4.3"
   },
   "devDependencies": {
     "@tailwindcss/postcss": "^4.3.0",

@@ -1,5 +1,6 @@
 import 'server-only'
 import { createClient } from '@supabase/supabase-js'
+import { getServerEnv } from '@/lib/config/env'
 
 /**
  * Cliente Supabase con service_role — SOLO para usar en el servidor
@@ -7,12 +8,8 @@ import { createClient } from '@supabase/supabase-js'
  * (crear usuarios, resetear contraseñas). NUNCA importar en componentes cliente.
  */
 export function createAdminClient() {
-  const url = process.env.NEXT_PUBLIC_SUPABASE_URL
-  const serviceKey = process.env.SUPABASE_SERVICE_ROLE_KEY
-  if (!url || !serviceKey) {
-    throw new Error('Faltan NEXT_PUBLIC_SUPABASE_URL o SUPABASE_SERVICE_ROLE_KEY en el entorno.')
-  }
-  return createClient(url, serviceKey, {
+  const env = getServerEnv()
+  return createClient(env.NEXT_PUBLIC_SUPABASE_URL, env.SUPABASE_SERVICE_ROLE_KEY, {
     auth: { autoRefreshToken: false, persistSession: false },
   })
 }

@@ -76,7 +76,7 @@ export async function POST(req: NextRequest) {
     const missing = missingEmissionEnv()
     if (missing.length) {
       await admin.from('credit_notes').delete().eq('id', note.id)
-      return NextResponse.json({ error: 'Configuración de emisión incompleta. Faltan: ' + missing.join(', ') }, { status: 422 })
+      return NextResponse.json({ error: 'Configuración de emisión incompleta o inválida: ' + missing.join(', ') }, { status: 422 })
     }
 
     const ivaRate = configuredIvaRate()

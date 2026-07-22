@@ -82,7 +82,7 @@ export async function POST(req: NextRequest) {
     const missing = missingEmissionEnv()
     if (missing.length) {
       await setStatus('draft')
-      return NextResponse.json({ error: 'Configuración de emisión incompleta. Faltan: ' + missing.join(', ') }, { status: 422 })
+      return NextResponse.json({ error: 'Configuración de emisión incompleta o inválida: ' + missing.join(', ') }, { status: 422 })
     }
 
     // IVA: tasa configurable (COMPANY_IVA_RATE). Por defecto 0 (exento). Se calcula
