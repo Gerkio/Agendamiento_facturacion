@@ -3,12 +3,12 @@ import { createClient } from '@/lib/supabase/server'
 import { createAdminClient } from '@/lib/supabase/admin'
 import { calculateCUFE } from '@/lib/dian/cufe-calculator'
 import { generateInvoiceXML } from '@/lib/dian/xml-generator'
-import { signXML, loadCertFromEnv } from '@/lib/dian/xml-signer'
+import { signXML, loadCertFromEnv, verifySignatureInternally } from '@/lib/dian/xml-signer'
 import { validateCertificate } from '@/lib/dian/cert-validator'
 import { validateInvoiceXsd } from '@/lib/dian/xsd-validator'
 import { validateBusinessRules } from '@/lib/dian/schematron-validator'
 import { buildSoapEnvelope } from '@/lib/dian/soap-wrapper'
-import { sendToDian } from '@/lib/dian/dian-client'
+import { sendToDian, DianTechnicalError } from '@/lib/dian/dian-client'
 import { recordAudit, hashDocument } from '@/lib/audit/log'
 import { isSameOrigin } from '@/lib/auth/origin'
 import { isUuid } from '@/lib/validate'
@@ -128,8 +128,15 @@ export async function POST(req: NextRequest) {
     })
     const xmlRaw = generateInvoiceXML({ invoiceNumber, issueDate, client, services, totalAmount, taxAmount, taxableBase, taxRate: ivaRate, cufe, environment })
 
-    // 4) Firmar
+    // 4) Firmar + verificar la firma ANTES de enviar (fail-fast: no se manda a la
+    //    DIAN un documento cuya firma no valida internamente).
     const signedXml = signXML(xmlRaw, cert)
+    const ver = verifySignatureInternally(signedXml, cert)
+    if (!ver.ok) {
+      await recordAudit({ userId: user.id, userEmail: user.email, action: 'invoice_signed', result: 'failure', details: { invoiceNumber, reason: ver.reason } })
+      await setStatus('draft', { dian_response_description: 'Firma interna inválida: ' + (ver.reason ?? '') })
+      return NextResponse.json({ error: 'La firma no validó internamente; no se envió a la DIAN. Revisa la configuración del certificado.' }, { status: 500 })
+    }
     const signedHash = hashDocument(signedXml)
     await recordAudit({ userId: user.id, userEmail: user.email, action: 'invoice_signed', result: 'success', documentHash: signedHash, details: { invoiceNumber, cufe } })
 
@@ -166,7 +173,21 @@ export async function POST(req: NextRequest) {
 
     // 7) SOAP + envío a la DIAN
     const soapEnvelope = buildSoapEnvelope({ signedXml, fileName: `${invoiceNumber}.xml`, certDerB64: cert.certDer.toString('base64') })
-    const dianResponse = await sendToDian(soapEnvelope, environment)
+    let dianResponse
+    try {
+      dianResponse = await sendToDian(soapEnvelope, environment)
+    } catch (e) {
+      if (e instanceof DianTechnicalError) {
+        // Error TÉCNICO (red/SOAP Fault/HTTP): el documento está firmado y es válido,
+        // pero la DIAN no dio una respuesta de negocio. NO se marca 'rejected'
+        // (rechazo permanente): se deja en 'draft' para reintentar. El consecutivo
+        // previo queda como hueco justificable — mejor que un rechazo falso.
+        await recordAudit({ userId: user.id, userEmail: user.email, action: 'dian_technical_error', result: 'warning', documentHash: signedHash, details: { invoiceNumber, message: e.message, httpStatus: e.httpStatus, environment } })
+        await setStatus('draft', { dian_response_description: 'Error técnico de la DIAN (reintentable): ' + e.message })
+        return NextResponse.json({ error: 'La DIAN no respondió por un problema técnico; la factura quedó como borrador para reintentar.', retryable: true }, { status: 503 })
+      }
+      throw e
+    }
 
     await recordAudit({
       userId: user.id, userEmail: user.email,

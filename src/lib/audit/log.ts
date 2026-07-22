@@ -10,6 +10,7 @@ export type AuditAction =
   | 'invoice_signed'
   | 'dian_sent'
   | 'dian_rejected'
+  | 'dian_technical_error'
   | 'cleaner_created'
   | 'cleaner_photo_updated'
   | 'cleaner_status_changed'

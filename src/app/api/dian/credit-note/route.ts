@@ -4,12 +4,12 @@ import { createAdminClient } from '@/lib/supabase/admin'
 import { calculateCUDE } from '@/lib/dian/cude-calculator'
 import { generateCreditNoteXML } from '@/lib/dian/credit-note-generator'
 import { CREDIT_NOTE_CONCEPTS } from '@/lib/dian/credit-note-concepts'
-import { signXML, loadCertFromEnv } from '@/lib/dian/xml-signer'
+import { signXML, loadCertFromEnv, verifySignatureInternally } from '@/lib/dian/xml-signer'
 import { validateCertificate } from '@/lib/dian/cert-validator'
 import { validateCreditNoteXsd } from '@/lib/dian/xsd-validator'
 import { validateBusinessRules } from '@/lib/dian/schematron-validator'
 import { buildSoapEnvelope } from '@/lib/dian/soap-wrapper'
-import { sendToDian } from '@/lib/dian/dian-client'
+import { sendToDian, DianTechnicalError } from '@/lib/dian/dian-client'
 import { recordAudit, hashDocument } from '@/lib/audit/log'
 import { isSameOrigin } from '@/lib/auth/origin'
 import { isUuid } from '@/lib/validate'
@@ -106,8 +106,10 @@ export async function POST(req: NextRequest) {
       softwarePin: process.env.DIAN_SOFTWARE_PIN!, environment,
     })
 
-    const origIssue = new Date(invoice.issue_date)
-    const origIssueStr = `${origIssue.getFullYear()}-${String(origIssue.getMonth() + 1).padStart(2, '0')}-${String(origIssue.getDate()).padStart(2, '0')}`
+    // Fecha de la factura original en hora legal de Colombia (UTC-5), consistente
+    // con la que declaró el XML original.
+    const origIssue = new Date(new Date(invoice.issue_date).getTime() - 5 * 3600_000)
+    const origIssueStr = `${origIssue.getUTCFullYear()}-${String(origIssue.getUTCMonth() + 1).padStart(2, '0')}-${String(origIssue.getUTCDate()).padStart(2, '0')}`
 
     const xmlRaw = generateCreditNoteXML({
       noteNumber, issueDate, client, services, totalAmount: tax.total,
@@ -117,6 +119,12 @@ export async function POST(req: NextRequest) {
     })
 
     const signedXml = signXML(xmlRaw, cert)
+    const ver = verifySignatureInternally(signedXml, cert)
+    if (!ver.ok) {
+      await recordAudit({ userId: auth.ctx.userId, action: 'invoice_signed', result: 'failure', details: { noteNumber, reason: ver.reason, kind: 'credit_note' } })
+      await admin.from('credit_notes').delete().eq('id', note.id)
+      return NextResponse.json({ error: 'La firma de la nota no validó internamente; no se envió a la DIAN.' }, { status: 500 })
+    }
     const signedHash = hashDocument(signedXml)
     await recordAudit({ userId: auth.ctx.userId, action: 'invoice_signed', result: 'success', documentHash: signedHash, details: { noteNumber, cude, kind: 'credit_note' } })
 
@@ -140,7 +148,19 @@ export async function POST(req: NextRequest) {
 
     // SOAP + envío
     const soapEnvelope = buildSoapEnvelope({ signedXml, fileName: `${noteNumber}.xml`, certDerB64: cert.certDer.toString('base64') })
-    const dianResponse = await sendToDian(soapEnvelope, environment)
+    let dianResponse
+    try {
+      dianResponse = await sendToDian(soapEnvelope, environment)
+    } catch (e) {
+      if (e instanceof DianTechnicalError) {
+        // Error técnico/transitorio: se descarta el intento (como los demás fallos
+        // tempranos) para poder reintentar limpio; no se marca 'rejected'.
+        await recordAudit({ userId: auth.ctx.userId, action: 'dian_technical_error', result: 'warning', documentHash: signedHash, details: { noteNumber, message: e.message, httpStatus: e.httpStatus, kind: 'credit_note' } })
+        await admin.from('credit_notes').delete().eq('id', note.id)
+        return NextResponse.json({ error: 'La DIAN no respondió por un problema técnico; reintenta la nota crédito.', retryable: true }, { status: 503 })
+      }
+      throw e
+    }
 
     await recordAudit({
       userId: auth.ctx.userId, action: dianResponse.isValid ? 'dian_sent' : 'dian_rejected',
