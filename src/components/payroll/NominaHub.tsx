@@ -30,6 +30,7 @@ export default function NominaHub({ initialRuns, params, cleaners }: Props) {
       <div className="flex flex-wrap gap-2">
         <Link href="/dashboard/nomina/parameters" className="text-sm px-3 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50">⚙️ Parámetros</Link>
         <Link href="/dashboard/nomina/contracts" className="text-sm px-3 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50">📄 Contratos</Link>
+        <Link href="/dashboard/nomina/settlement" className="text-sm px-3 py-2 rounded-lg border border-gray-300 text-gray-700 hover:bg-gray-50">🧾 Liquidación definitiva</Link>
         <button type="button" onClick={() => setWizard(true)} className="ml-auto text-sm px-4 py-2 rounded-lg bg-brand-600 text-white font-medium hover:bg-brand-700">+ Nueva corrida</button>
       </div>
 
