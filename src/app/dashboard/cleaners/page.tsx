@@ -1,4 +1,5 @@
 import { requireAdmin } from '@/lib/auth'
+import { signedPhotoUrls } from '@/lib/storage'
 import CleanersTable from '@/components/cleaners/CleanersTable'
 
 export default async function CleanersPage() {
@@ -8,16 +9,8 @@ export default async function CleanersPage() {
   // se traen todas las columnas.
   const { data: cleaners } = await supabase.from('cleaners').select('*').order('full_name')
 
-  // URLs firmadas para las fotos (bucket privado), en paralelo en vez de secuencial.
-  const photoUrls: Record<string, string> = {}
-  await Promise.all(
-    (cleaners ?? [])
-      .filter(c => c.photo_url)
-      .map(async c => {
-        const { data } = await supabase.storage.from('cleaner-photos').createSignedUrl(c.photo_url!, 3600)
-        if (data?.signedUrl) photoUrls[c.id] = data.signedUrl
-      })
-  )
+  // URLs firmadas de las fotos (bucket privado) en UNA sola llamada (evita N+1).
+  const photoUrls = await signedPhotoUrls(supabase, 'cleaner-photos', cleaners ?? [])
 
   return (
     <div>

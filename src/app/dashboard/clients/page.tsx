@@ -1,4 +1,5 @@
 import { requireAdmin } from '@/lib/auth'
+import { signedPhotoUrls } from '@/lib/storage'
 import ClientsTable from '@/components/clients/ClientsTable'
 import type { Client } from '@/types/database'
 
@@ -13,16 +14,8 @@ export default async function ClientsPage() {
     .order('company_name')
     .returns<Client[]>()
 
-  // URLs firmadas en paralelo (una sola tanda) en vez de secuencial por fila.
-  const photoUrls: Record<string, string> = {}
-  await Promise.all(
-    (clients ?? [])
-      .filter(c => c.photo_url)
-      .map(async c => {
-        const { data } = await supabase.storage.from('client-photos').createSignedUrl(c.photo_url!, 3600)
-        if (data?.signedUrl) photoUrls[c.id] = data.signedUrl
-      })
-  )
+  // URLs firmadas de las fotos (bucket privado) en UNA sola llamada (evita N+1).
+  const photoUrls = await signedPhotoUrls(supabase, 'client-photos', clients ?? [])
 
   return (
     <div>

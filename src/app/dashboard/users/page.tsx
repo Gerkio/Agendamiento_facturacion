@@ -1,5 +1,6 @@
 import { redirect } from 'next/navigation'
 import { getAuth } from '@/lib/auth'
+import { signedPhotoUrls } from '@/lib/storage'
 import UsersTable, { type UserRow } from '@/components/users/UsersTable'
 
 export default async function UsersPage() {
@@ -14,16 +15,8 @@ export default async function UsersPage() {
     .order('role')
     .returns<UserRow[]>()
 
-  // URLs firmadas de las fotos de administradores (bucket privado), en paralelo.
-  const photoUrls: Record<string, string> = {}
-  await Promise.all(
-    (users ?? [])
-      .filter(u => u.role === 'admin' && u.photo_url)
-      .map(async u => {
-        const { data } = await supabase.storage.from('admin-photos').createSignedUrl(u.photo_url!, 3600)
-        if (data?.signedUrl) photoUrls[u.id] = data.signedUrl
-      })
-  )
+  // URLs firmadas de las fotos de administradores (bucket privado) en UNA llamada.
+  const photoUrls = await signedPhotoUrls(supabase, 'admin-photos', (users ?? []).filter(u => u.role === 'admin'))
 
   return (
     <div>
