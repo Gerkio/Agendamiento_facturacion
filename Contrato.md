@@ -66,7 +66,7 @@ La ausencia de alguna funcionalidad adicional no prevista en este apartado no se
 #### CLÁUSULA QUINTA: PROPIEDAD INTELECTUAL, LICENCIA Y CONTROL DEL REPOSITORIO
 
 1. **Titularidad de los Derechos:** De conformidad con la Decisión Andina 351 de 1993 y la Ley 23 de 1982, la propiedad intelectual, los derechos morales de autor y los derechos patrimoniales sobre la arquitectura del software, la lógica algorítmica del calendario, y el núcleo informático de conexión directa con los Web Services de la DIAN pertenecen de forma exclusiva y en su totalidad a **EL DESARROLLADOR**. **EL DESARROLLADOR** se reserva expresamente el derecho de realizar forks (bifurcaciones), reutilizar o adaptar este código base para el desarrollo de soluciones similares a terceros en el futuro.  
-2. **Licencia de Uso:** Al completarse el pago total de los honorarios pactados en este contrato, **EL DESARROLLADOR** otorga a **EL CONTRATANTE** una *Licencia de Uso Perpetua, Privada y No Exclusiva*, limitada única y exclusivamente a la explotación operativa comercial interna de su negocio bajo la personería jurídica de ASEO Y CONFORT GROUP S.A.S.  
+2. **Licencia de Uso Condicionada:** Sujeto a la condición suspensiva del pago total y efectivo del cien por ciento (100%) de los honorarios pactados en la Cláusula Tercera, **EL DESARROLLADOR** otorgará a **EL CONTRATANTE** una *Licencia de Uso Perpetua, Privada y No Exclusiva*, limitada única y exclusivamente a la explotación operativa comercial interna de su negocio bajo la personería jurídica de ASEO Y CONFORT GROUP S.A.S. Se entiende que, en caso de mora o impago del saldo del setenta por ciento (70%), la licencia no nacerá a la vida jurídica, y cualquier uso, despliegue o explotación de la plataforma por parte de **EL CONTRATANTE** será considerado una infracción directa a los derechos de autor de conformidad con la Cláusula Sexta.  
 3. **Control Técnico de Despliegue y Acceso al Repositorio (GitHub):**  
 * **EL CONTRATANTE** tendrá el control administrativo y el acceso directo a los entornos de alojamiento y base de datos creados para el despliegue del proyecto en producción (cuentas de Vercel y Supabase).  
 * No obstante, el código fuente original del proyecto estará enlazado y hospedado bajo una cuenta y repositorio de la plataforma GitHub propiedad de **EL DESARROLLADOR**.  
@@ -117,7 +117,25 @@ En cumplimiento de la Ley 1581 de 2012 y el Decreto 1074 de 2015, **EL CONTRATAN
 * **Conciliación en Primera Instancia:** De no lograrse un acuerdo directo en el plazo estipulado, **LAS PARTES** acudirán obligatoriamente a una audiencia de conciliación extrajudicial en derecho ante el **Centro de Conciliación de la Cámara de Comercio de Medellín**.  
 * **Jurisdicción Ordinaria:** Si la audiencia de conciliación se declara fallida de forma total o parcial, la controversia será sometida definitivamente a decisión de los **Jueces Civiles de la República de Colombia** de la ciudad de Medellín, Antioquia.
 
-#### CLÁUSULA DÉCIMA SEGUNDA: DIRECCIONES Y NOTIFICACIONES
+#### CLÁUSULA DÉCIMA SEGUNDA: INDEPENDENCIA LABORAL Y SEGURIDAD SOCIAL
+
+**LAS PARTES** declaran expresamente que entre ellas no existe vínculo, relación laboral, ni de subordinación alguna de carácter laboral. El presente contrato es de carácter estrictamente civil y comercial. **EL DESARROLLADOR** ejecutará el objeto contractual con plena autonomía técnica, administrativa y directiva, utilizando sus propios medios y herramientas de trabajo.
+
+**PARÁGRAFO: SEGURIDAD SOCIAL.** En su calidad de contratista independiente, **EL DESARROLLADOR** asumirá de manera exclusiva la afiliación y el pago de sus aportes al Sistema de Seguridad Social Integral (Salud, Pensión y Riesgos Laborales - ARL) de conformidad con las leyes colombianas vigentes. De ser requerido para el trámite del pago del saldo final, **EL DESARROLLADOR** presentará la planilla de autoliquidación de aportes (PILA) correspondiente al período de ejecución.
+
+#### CLÁUSULA DÉCIMA TERCERA: CONFIDENCIALIDAD
+
+**LAS PARTES** se obligan a mantener bajo estricta reserva y confidencialidad toda la información técnica, comercial, operativa, financiera, de bases de datos de clientes, empleados o metodologías de desarrollo a la que tengan acceso con ocasión de la ejecución de este contrato. Esta obligación de no divulgación e indemnidad sobrevivirá por un término de dos (2) años contados a partir de la terminación o liquidación del presente contrato.
+
+#### CLÁUSULA DÉCIMA CUARTA: DIVISIBILIDAD (SEVERABILIDAD)
+
+Si cualquier cláusula, parágrafo o disposición de este contrato fuere declarada nula, ilegal o ineficaz por un juez o tribunal competente, dicha declaración no afectará la validez, legalidad y exigibilidad de las demás disposiciones del contrato, las cuales conservarán plena vigencia y efecto vinculante para **LAS PARTES**.
+
+#### CLÁUSULA DÉCIMA QUINTA: VALIDEZ DE LA FIRMA ELECTRÓNICA
+
+De conformidad con lo dispuesto en la Ley 527 de 1999 y el Decreto 2364 de 2012, **LAS PARTES** aceptan y acuerdan que el presente contrato podrá ser firmado de manera física, mecánica o a través de firmas electrónicas, digitales o mediante el intercambio de mensajes de datos con firmas escaneadas en formato PDF enviados por correo electrónico. Dichos mecanismos de firma gozarán de total validez, autenticidad e integridad, obligando a las partes en los mismos términos que una firma manuscrita.
+
+#### CLÁUSULA DÉCIMA SEXTA: DIRECCIONES Y NOTIFICACIONES
 
 Para todos los efectos legales y contractuales, las direcciones de notificación física y de correo electrónico oficiales de **LAS PARTES** serán las siguientes, aceptando que las comunicaciones enviadas a los correos electrónicos registrados surtirán plenos efectos de notificación formal:
 
